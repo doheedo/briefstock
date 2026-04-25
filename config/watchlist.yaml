@@ -30,9 +30,9 @@ watchlist:
     keywords: [Topicus, VMS, TSS, acquisition]
     source_priority: [news, filings, price]
   - ticker: RELX
-    name: RELX plc
-    market: UK
-    thesis: LexisNexis, Elsevier, 법률 및 연구 데이터 해자 추적
+    name: RELX plc ADR
+    market: US
+    thesis: 미국 상장 ADR 기준으로 LexisNexis, Elsevier, 법률 및 연구 데이터 해자 추적
     keywords: [RELX, LexisNexis, Elsevier, legal AI, research data]
     source_priority: [news, filings, price]
   - ticker: WKL.AS
