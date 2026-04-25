@@ -1,8 +1,13 @@
+import base64
 from pathlib import Path
 
 from jinja2 import Environment, select_autoescape
 
 from daily_stock_briefing.domain.models import DailyBriefingReport
+
+
+def _priority_label(value: str) -> str:
+    return {"High": "높음", "Medium": "중간", "Low": "낮음"}.get(value, value)
 
 
 def _format_pct(value: float | None, *, suffix: str = "%") -> str:
@@ -12,13 +17,27 @@ def _format_pct(value: float | None, *, suffix: str = "%") -> str:
 def _format_number(value: float | None) -> str:
     return "n/a" if value is None else f"{value:.1f}"
 
+
+def _chart_src(chart_path: str | None, report_path: Path) -> str | None:
+    if not chart_path:
+        return None
+    chart_file = Path(chart_path)
+    if not chart_file.is_absolute():
+        chart_file = report_path.parent / chart_file
+    try:
+        data = chart_file.read_bytes()
+    except OSError:
+        return None
+    return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
+
+
 PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
     """<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Daily Stock Briefing - {{ report.run_date }}</title>
+  <title>데일리 종목 브리핑 - {{ report.run_date }}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #1d1d1f; }
     main { max-width: 960px; margin: 0 auto; }
@@ -31,14 +50,14 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
 </head>
 <body>
   <main>
-    <h1>Daily Stock Briefing - {{ report.run_date }}</h1>
+    <h1>데일리 종목 브리핑 - {{ report.run_date }}</h1>
     <p>{{ report.market_summary }}</p>
     {% for briefing in report.symbol_briefings %}
     <section>
       <h2>{{ briefing.watchlist_item.ticker }} - {{ briefing.watchlist_item.name }}</h2>
-      <p class="priority">Priority: {{ briefing.priority.value }}</p>
+      <p class="priority">우선순위: {{ priority_label(briefing.priority.value) }}</p>
       {% if briefing.price_snapshot %}
-      <p>Price: {{ "%.2f"|format(briefing.price_snapshot.close) }} {{ briefing.price_snapshot.currency }}
+      <p>가격: {{ "%.2f"|format(briefing.price_snapshot.close) }} {{ briefing.price_snapshot.currency }}
         ({{ "%+.1f"|format(briefing.price_snapshot.change_pct) }}%)</p>
       <p class="metrics">
         5D: {{ format_pct(briefing.price_snapshot.return_5d_pct) }} /
@@ -48,20 +67,21 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
         Relative: {{ format_pct(briefing.price_snapshot.relative_return_1y_pct, suffix="%p") }}<br>
         RSI(14): {{ format_number(briefing.price_snapshot.rsi_14) }}
       </p>
-      {% if briefing.price_snapshot.chart_path %}
-      <p><img class="chart" src="{{ briefing.price_snapshot.chart_path }}" alt="{{ briefing.watchlist_item.ticker }} 1Y price and RSI chart"></p>
+      {% set chart_data_src = chart_src(briefing.price_snapshot.chart_path) %}
+      {% if chart_data_src %}
+      <p><img class="chart" src="{{ chart_data_src }}" alt="{{ briefing.watchlist_item.ticker }} 1년 가격 및 RSI 차트"></p>
       {% endif %}
       {% else %}
-      <p class="muted">Price: unavailable</p>
+      <p class="muted">가격: n/a</p>
       {% endif %}
-      <p><strong>Thesis Impact:</strong> {{ briefing.thesis_summary }}</p>
+      <p><strong>Thesis 영향:</strong> {{ briefing.thesis_summary }}</p>
       {% if briefing.derived_events %}
-      <h3>Events</h3>
+      <h3>회사 이벤트</h3>
       {% for event in briefing.derived_events %}
       <p><strong>{{ event.category.value }}</strong> / score {{ event.importance_score }} / {{ event.thesis_impact.value }}<br>
       {{ event.summary }}</p>
       {% if event.source_refs %}
-      <p class="muted">Sources:
+      <p class="muted">출처:
       {% for url in event.source_refs %}
         <a href="{{ url }}">{{ loop.index }}</a>
       {% endfor %}
@@ -70,7 +90,7 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       {% endfor %}
       {% endif %}
       {% if briefing.follow_up_questions %}
-      <h3>Follow-up</h3>
+      <h3>추가 확인</h3>
       {% for question in briefing.follow_up_questions %}
       <p>{{ question }}</p>
       {% endfor %}
@@ -87,7 +107,13 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
 def write_html_report(report: DailyBriefingReport, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        PAGE.render(report=report, format_pct=_format_pct, format_number=_format_number),
+        PAGE.render(
+            report=report,
+            format_pct=_format_pct,
+            format_number=_format_number,
+            priority_label=_priority_label,
+            chart_src=lambda chart_path: _chart_src(chart_path, path),
+        ),
         encoding="utf-8",
     )
     return path

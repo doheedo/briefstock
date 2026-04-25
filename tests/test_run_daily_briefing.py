@@ -442,4 +442,4 @@ def test_main_filters_watchlist_by_group_and_uses_group_output_name(
     assert [item["watchlist_item"]["ticker"] for item in payload["symbol_briefings"]] == [
         "SNOW"
     ]
-    assert "Group: data_info" in payload["market_summary"]
+    assert "그룹: data_info" in payload["market_summary"]

@@ -181,8 +181,8 @@ def main(argv: list[str] | None = None) -> int:
     report = DailyBriefingReport(
         run_date=args.date,
         market_summary=(
-            "Daily delta briefing generated from watchlist sources."
-            + (f" Group: {args.group}." if args.group else "")
+            "관심종목 소스 기반 데일리 변화 요약."
+            + (f" 그룹: {args.group}." if args.group else "")
         ),
         symbol_briefings=briefings,
         delivery_metadata={"warnings": "\n".join(warnings)} if warnings else {},

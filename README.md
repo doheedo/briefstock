@@ -50,7 +50,7 @@ When `--group` is used, HTML/JSON filenames include the group suffix, for exampl
 
 ## Reports
 
-HTML reports include the full watchlist slice plus each available 1Y chart. Telegram messages keep only compact numeric summaries and attach the HTML report instead of sending every chart image.
+HTML reports include the full watchlist slice plus each available 1Y chart. Chart images are embedded into the HTML file as base64 data URIs so Telegram `sendDocument` can deliver a self-contained report. Telegram messages keep only compact numeric summaries and attach the HTML report instead of sending every chart image.
 
 Each price section includes:
 

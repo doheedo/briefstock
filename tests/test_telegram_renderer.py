@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timezone
 
 from daily_stock_briefing.domain.enums import DailyPriority, EventCategory, ThesisImpact
@@ -64,7 +65,7 @@ def test_render_symbol_line_uses_only_supported_tags() -> None:
     html = render_symbol_line(_briefing())
 
     assert "<b>SNOW</b>" in html
-    assert "Price: 104.00 USD (+4.0%)" in html
+    assert "가격: 104.00 USD (+4.0%)" in html
     assert "5D: -3.4% / 1M: +2.1% / 1Y: -18.4%" in html
     assert "S&amp;P500 1Y: +11.2% / Relative: -29.6%p" in html
     assert "RSI(14): 37.8" in html
@@ -82,7 +83,7 @@ def test_render_telegram_html_escapes_user_text() -> None:
 
     html = render_telegram_html(report)
 
-    assert "<b>Daily Briefing 2026-04-24</b>" in html
+    assert "<b>데일리 브리핑 2026-04-24</b>" in html
     assert "Market &lt;mixed&gt;" in html
     assert "<table>" not in html
 
@@ -103,12 +104,15 @@ def test_render_telegram_html_truncates_without_breaking_html_tags() -> None:
     html = render_telegram_html(report)
 
     assert len(html) <= MAX_TELEGRAM_HTML_LENGTH
-    assert html.endswith("<i>Full report attached.</i>")
-    assert "Thesis:" not in html
+    assert html.endswith("<i>전체 리포트 첨부.</i>")
+    assert "Thesis 영향:" not in html
     assert "<a href=" not in html
 
 
 def test_write_html_report_creates_full_report(tmp_path) -> None:
+    chart_path = tmp_path / "reports" / "charts" / "2026-04-24" / "SNOW.png"
+    chart_path.parent.mkdir(parents=True)
+    chart_path.write_bytes(b"\x89PNG\r\n\x1a\nfake-png")
     report = DailyBriefingReport(
         run_date="2026-04-24",
         market_summary="Minimal market summary",
@@ -119,10 +123,14 @@ def test_write_html_report_creates_full_report(tmp_path) -> None:
 
     output = path.read_text(encoding="utf-8")
     assert "<!doctype html>" in output
-    assert "Daily Stock Briefing - 2026-04-24" in output
+    assert "데일리 종목 브리핑 - 2026-04-24" in output
     assert "SNOW - Snowflake" in output
     assert "negative: growth slowdown" in output
     assert "RSI(14): 37.8" in output
     assert 'class="chart"' in output
-    assert 'src="../charts/2026-04-24/SNOW.png"' in output
+    expected_chart_src = (
+        "data:image/png;base64,"
+        + base64.b64encode(chart_path.read_bytes()).decode("ascii")
+    )
+    assert f'src="{expected_chart_src}"' in output
     assert 'href="https://example.com/source?x=1&amp;y=2"' in output

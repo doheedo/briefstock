@@ -3,15 +3,19 @@ from html import escape
 from daily_stock_briefing.domain.models import DailyBriefingReport, SymbolBriefing
 
 MAX_TELEGRAM_HTML_LENGTH = 3900
-FULL_REPORT_NOTE = "<i>Full report attached.</i>"
+FULL_REPORT_NOTE = "<i>전체 리포트 첨부.</i>"
+
+
+def _priority_label(value: str) -> str:
+    return {"High": "높음", "Medium": "중간", "Low": "낮음"}.get(value, value)
 
 
 def _format_price(briefing: SymbolBriefing) -> str:
     price = briefing.price_snapshot
     if price is None:
-        return "Price: unavailable"
+        return "가격: n/a"
     sign = "+" if price.change_pct >= 0 else ""
-    return f"Price: {price.close:.2f} {escape(price.currency)} ({sign}{price.change_pct:.1f}%)"
+    return f"가격: {price.close:.2f} {escape(price.currency)} ({sign}{price.change_pct:.1f}%)"
 
 
 def _format_pct(value: float | None, *, suffix: str = "%") -> str:
@@ -48,7 +52,7 @@ def _source_links(briefing: SymbolBriefing) -> str:
         f'<a href="{escape(url, quote=True)}">{index}</a>'
         for index, url in enumerate(urls[:3], start=1)
     )
-    return f"\n• Sources: {links}"
+    return f"\n• 출처: {links}"
 
 
 def render_symbol_line(briefing: SymbolBriefing) -> str:
@@ -58,12 +62,12 @@ def render_symbol_line(briefing: SymbolBriefing) -> str:
     questions = " / ".join(
         escape(question) for question in briefing.follow_up_questions[:2]
     )
-    question_line = f"\n• Check: {questions}" if questions else ""
+    question_line = f"\n• 확인: {questions}" if questions else ""
     return (
-        f"<b>{ticker}</b> {name} ({escape(briefing.priority.value)})\n"
+        f"<b>{ticker}</b> {name} ({escape(_priority_label(briefing.priority.value))})\n"
         f"• {_format_price(briefing)}\n"
         f"{_format_metrics(briefing)}\n"
-        f"• Thesis: {summary}"
+        f"• Thesis 영향: {summary}"
         f"{question_line}"
         f"{_source_links(briefing)}"
     )
@@ -71,7 +75,7 @@ def render_symbol_line(briefing: SymbolBriefing) -> str:
 
 def render_telegram_html(report: DailyBriefingReport) -> str:
     parts = [
-        f"<b>Daily Briefing {escape(report.run_date)}</b>",
+        f"<b>데일리 브리핑 {escape(report.run_date)}</b>",
         escape(report.market_summary),
     ]
     note_suffix = f"\n\n{FULL_REPORT_NOTE}"
