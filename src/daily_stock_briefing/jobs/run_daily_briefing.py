@@ -35,14 +35,23 @@ def _fetch_news(item, provider: HttpNewsProvider | None) -> list[NewsItem]:
     return provider.fetch_news(item)
 
 
-def _fetch_filings(item) -> list[FilingItem]:
+def _fetch_filings(
+    item,
+    *,
+    dart_provider: DartFilingProvider | None = None,
+    sec_provider: SecFilingProvider | None = None,
+) -> list[FilingItem]:
     if item.market.upper().startswith("KR") and os.getenv("DART_API_KEY"):
-        return DartFilingProvider(os.environ["DART_API_KEY"]).fetch_filings(item)
+        provider = dart_provider or DartFilingProvider(os.environ["DART_API_KEY"])
+        return provider.fetch_filings(item)
     if item.market.upper() in {"US", "USA", "CA", "CANADA"}:
-        user_agent = os.getenv("SEC_USER_AGENT") or (
-            "DailyStockBriefing/0.1 contact@example.com"
-        )
-        return SecFilingProvider(user_agent=user_agent).fetch_filings(item)
+        provider = sec_provider
+        if provider is None:
+            user_agent = os.getenv("SEC_USER_AGENT") or (
+                "DailyStockBriefing/0.1 contact@example.com"
+            )
+            provider = SecFilingProvider(user_agent=user_agent)
+        return provider.fetch_filings(item)
     return []
 
 
@@ -103,6 +112,15 @@ def main(argv: list[str] | None = None) -> int:
     price_provider = YFinancePriceProvider()
     news_provider = _build_news_provider()
     llm_classifier = _build_llm_classifier()
+    dart_provider = (
+        DartFilingProvider(os.environ["DART_API_KEY"])
+        if os.getenv("DART_API_KEY")
+        else None
+    )
+    sec_provider = SecFilingProvider(
+        user_agent=os.getenv("SEC_USER_AGENT")
+        or "DailyStockBriefing/0.1 contact@example.com"
+    )
 
     briefings = []
     warnings: list[str] = []
@@ -142,7 +160,11 @@ def main(argv: list[str] | None = None) -> int:
             news = []
 
         try:
-            filings = _fetch_filings(item)
+            filings = _fetch_filings(
+                item,
+                dart_provider=dart_provider,
+                sec_provider=sec_provider,
+            )
         except Exception as exc:  # pragma: no cover - defensive job boundary
             warnings.append(f"{item.ticker}: filings unavailable ({exc})")
             filings = []

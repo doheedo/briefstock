@@ -21,9 +21,7 @@ def _parse_dart_filed_at(value: str) -> datetime:
     return datetime.fromisoformat(f"{value}T00:00:00+09:00").astimezone(timezone.utc)
 
 
-def _lookup_dart_corp_code(
-    client: httpx.Client, api_key: str, ticker: str
-) -> str | None:
+def _load_dart_corp_codes(client: httpx.Client, api_key: str) -> dict[str, str]:
     response = client.get(DART_CORP_CODES_URL, params={"crtfc_key": api_key})
     response.raise_for_status()
 
@@ -33,24 +31,30 @@ def _lookup_dart_corp_code(
                 name for name in archive.namelist() if name.lower().endswith(".xml")
             ]
             if not xml_names:
-                return None
+                return {}
             xml_payload = archive.read(xml_names[0])
     except (OSError, KeyError, zipfile.BadZipFile):
-        return None
+        return {}
 
     try:
         root = ElementTree.fromstring(xml_payload)
     except ElementTree.ParseError:
-        return None
+        return {}
 
-    ticker_upper = ticker.strip().upper().split(".", 1)[0]
+    corp_codes: dict[str, str] = {}
     for node in root.findall(".//list"):
         stock_code = (node.findtext("stock_code") or "").strip().upper()
         corp_code = (node.findtext("corp_code") or "").strip()
-        if stock_code == ticker_upper and corp_code:
-            return corp_code
+        if stock_code and corp_code:
+            corp_codes[stock_code] = corp_code
+    return corp_codes
 
-    return None
+
+def _lookup_dart_corp_code(
+    client: httpx.Client, api_key: str, ticker: str
+) -> str | None:
+    ticker_upper = ticker.strip().upper().split(".", 1)[0]
+    return _load_dart_corp_codes(client, api_key).get(ticker_upper)
 
 
 def normalize_dart_filing(ticker: str, raw: dict[str, Any]) -> FilingItem:
@@ -73,10 +77,11 @@ class DartFilingProvider(FilingProvider):
     def __init__(self, api_key: str, timeout: float = 10.0) -> None:
         self._api_key = api_key
         self._timeout = timeout
+        self._corp_codes_by_stock: dict[str, str] | None = None
 
     def fetch_filings(self, item: WatchlistItem) -> list[FilingItem]:
         with httpx.Client(timeout=self._timeout) as client:
-            corp_code = _lookup_dart_corp_code(client, self._api_key, item.ticker)
+            corp_code = self._lookup_corp_code(client, item.ticker)
             if not corp_code:
                 return []
 
@@ -102,3 +107,9 @@ class DartFilingProvider(FilingProvider):
             raw_filings,
             lambda raw: normalize_dart_filing(item.ticker, raw),
         )
+
+    def _lookup_corp_code(self, client: httpx.Client, ticker: str) -> str | None:
+        if self._corp_codes_by_stock is None:
+            self._corp_codes_by_stock = _load_dart_corp_codes(client, self._api_key)
+        ticker_upper = ticker.strip().upper().split(".", 1)[0]
+        return self._corp_codes_by_stock.get(ticker_upper)
