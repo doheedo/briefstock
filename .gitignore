@@ -4,6 +4,8 @@ __pycache__/
 *.pyc
 .env
 reports/json/*.json
+reports/html/*.html
+!reports/html/sample-2026-04-24.html
 dist/
 build/
 *.egg-info/

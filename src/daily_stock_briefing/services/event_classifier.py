@@ -1,0 +1,95 @@
+from daily_stock_briefing.domain.enums import EventCategory, ThesisImpact
+from daily_stock_briefing.domain.models import (
+    CompanyEvent,
+    FilingItem,
+    NewsItem,
+    WatchlistItem,
+)
+
+NEGATIVE_TERMS = ("cut", "lower", "miss", "weak", "delay", "lawsuit", "probe")
+POSITIVE_TERMS = ("raise", "beat", "strong", "win", "approval", "expands")
+
+
+def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
+    return any(term in text for term in terms)
+
+
+def _impact_from_text(text: str) -> ThesisImpact:
+    lowered = text.lower()
+    if _contains_any(lowered, NEGATIVE_TERMS):
+        return ThesisImpact.NEGATIVE
+    if _contains_any(lowered, POSITIVE_TERMS):
+        return ThesisImpact.POSITIVE
+    return ThesisImpact.UNKNOWN
+
+
+def classify_news_event(item: WatchlistItem, news: NewsItem) -> CompanyEvent:
+    text = f"{news.title} {news.summary}".lower()
+    if "guidance" in text or "outlook" in text:
+        category = EventCategory.GUIDANCE
+        impact = _impact_from_text(text)
+        score = 5 if impact == ThesisImpact.NEGATIVE else 4
+    elif "earnings" in text or "results" in text:
+        category = EventCategory.EARNINGS
+        impact = _impact_from_text(text)
+        score = 5
+    elif "acquire" in text or "acquisition" in text or "merger" in text:
+        category = EventCategory.MNA
+        impact = ThesisImpact.UNKNOWN
+        score = 4
+    elif "contract" in text or "customer" in text:
+        category = EventCategory.CUSTOMER_CONTRACT
+        impact = _impact_from_text(text)
+        score = 4
+    elif "lawsuit" in text or "litigation" in text:
+        category = EventCategory.LITIGATION
+        impact = ThesisImpact.NEGATIVE
+        score = 4
+    elif "regulation" in text or "regulator" in text:
+        category = EventCategory.REGULATION
+        impact = _impact_from_text(text)
+        score = 4
+    else:
+        category = EventCategory.NOISE
+        impact = ThesisImpact.NEUTRAL
+        score = 2
+
+    return CompanyEvent(
+        ticker=item.ticker,
+        category=category,
+        importance_score=score,
+        thesis_impact=impact,
+        summary=news.summary or news.title,
+        evidence=[news.title],
+        source_refs=[news.url],
+    )
+
+
+def classify_filing_event(item: WatchlistItem, filing: FilingItem) -> CompanyEvent:
+    text = f"{filing.title} {filing.raw_excerpt}".lower()
+    if "offering" in text or "convertible" in text or "financing" in text:
+        category = EventCategory.FINANCING
+        impact = ThesisImpact.UNKNOWN
+        score = 4
+    elif "insider" in text or "form 4" in text:
+        category = EventCategory.INSIDER_TRANSACTION
+        impact = ThesisImpact.UNKNOWN
+        score = 3
+    elif "8-k" in text or "current report" in text:
+        category = EventCategory.NOISE
+        impact = ThesisImpact.NEUTRAL
+        score = 2
+    else:
+        category = EventCategory.NOISE
+        impact = ThesisImpact.NEUTRAL
+        score = 2
+
+    return CompanyEvent(
+        ticker=item.ticker,
+        category=category,
+        importance_score=score,
+        thesis_impact=impact,
+        summary=filing.title,
+        evidence=[filing.raw_excerpt or filing.title],
+        source_refs=[filing.filing_url],
+    )

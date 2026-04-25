@@ -1,0 +1,30 @@
+name: daily-briefing
+
+on:
+  schedule:
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m venv .venv
+      - run: ./.venv/bin/python -m pip install -e .[dev]
+      - run: ./.venv/bin/python -m pytest tests/test_config_loader.py tests/test_event_classifier.py tests/test_telegram_renderer.py tests/test_run_daily_briefing.py -v
+      - run: ./.venv/bin/python -m daily_stock_briefing.jobs.run_daily_briefing --date "$(TZ=Asia/Seoul date +%F)"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NEWS_API_BASE_URL: ${{ secrets.NEWS_API_BASE_URL }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-briefing-reports
+          path: reports/

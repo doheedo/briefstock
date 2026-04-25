@@ -1,0 +1,76 @@
+from daily_stock_briefing.domain.enums import DailyPriority, ThesisImpact
+from daily_stock_briefing.domain.models import (
+    FilingItem,
+    NewsItem,
+    PriceSnapshot,
+    SymbolBriefing,
+    WatchlistItem,
+)
+from daily_stock_briefing.services.event_classifier import (
+    classify_filing_event,
+    classify_news_event,
+)
+
+PRICE_MOVE_MEDIUM_THRESHOLD = 5.0
+
+
+def _priority_for_events(
+    events: list,
+    price_snapshot: PriceSnapshot | None,
+) -> DailyPriority:
+    if any(event.thesis_impact == ThesisImpact.NEGATIVE for event in events):
+        return DailyPriority.HIGH
+    if any(event.importance_score >= 4 for event in events):
+        return DailyPriority.HIGH
+    if any(event.importance_score == 3 for event in events):
+        return DailyPriority.MEDIUM
+    if price_snapshot and abs(price_snapshot.change_pct) >= PRICE_MOVE_MEDIUM_THRESHOLD:
+        return DailyPriority.MEDIUM
+    return DailyPriority.LOW
+
+
+def _build_follow_up_questions(
+    price_snapshot: PriceSnapshot | None,
+    events: list,
+) -> list[str]:
+    questions: list[str] = []
+    if events:
+        questions.append("Does this change the core thesis today?")
+    if price_snapshot and abs(price_snapshot.change_pct) >= PRICE_MOVE_MEDIUM_THRESHOLD:
+        questions.append(
+            f"Review price move of {price_snapshot.change_pct:.1f}% against news and filings."
+        )
+    return questions
+
+
+def build_symbol_briefing(
+    item: WatchlistItem,
+    price_snapshot: PriceSnapshot | None,
+    news_items: list[NewsItem],
+    filing_items: list[FilingItem],
+) -> SymbolBriefing:
+    events = [classify_news_event(item, news) for news in news_items[:3]]
+    events.extend(classify_filing_event(item, filing) for filing in filing_items[:3])
+    priority = _priority_for_events(events, price_snapshot)
+
+    thesis_summary = "No thesis-relevant update."
+    thesis_events = [
+        event
+        for event in events
+        if event.thesis_impact
+        in {ThesisImpact.POSITIVE, ThesisImpact.NEGATIVE, ThesisImpact.UNKNOWN}
+    ]
+    if thesis_events:
+        first = thesis_events[0]
+        thesis_summary = f"{first.thesis_impact.value}: {first.summary}"
+
+    return SymbolBriefing(
+        watchlist_item=item,
+        price_snapshot=price_snapshot,
+        major_news=news_items[:3],
+        filings=filing_items[:3],
+        derived_events=events,
+        thesis_summary=thesis_summary,
+        follow_up_questions=_build_follow_up_questions(price_snapshot, events),
+        priority=priority,
+    )

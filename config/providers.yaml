@@ -1,0 +1,9 @@
+prices:
+  default: yfinance
+news:
+  default: http
+filings:
+  sec: enabled
+  dart: enabled
+llm:
+  enabled: false

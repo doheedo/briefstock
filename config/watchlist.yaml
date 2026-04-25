@@ -2,12 +2,108 @@ watchlist:
   - ticker: 012700.KQ
     name: 리드코프
     market: KR
-    thesis: 디케이마린과 엘씨대부 현금흐름, 배당여력 점검
-    keywords: [리드코프, 엘씨대부, 배당]
+    thesis: 디케이마린, 엘씨대부, 배당여력 관련 주요 이슈 추적
+    keywords: [리드코프, 디케이마린, 엘씨대부, 배당]
     source_priority: [filings, news, price]
   - ticker: 033310.KQ
     name: 엠투엔
     market: KR
-    thesis: 리드코프 지배구조 및 지분 관련 변수 추적
-    keywords: [엠투엔, 리드코프, 지배구조]
+    thesis: 리드코프 지배구조와 지분 관련 변수 추적
+    keywords: [엠투엔, 리드코프, 지배구조, 지분]
     source_priority: [filings, news, price]
+  - ticker: 207940.KS
+    name: 삼성바이오로직스
+    market: KR
+    thesis: CDMO 경쟁력과 Asymchem 비교 맥락의 주요 이벤트 추적
+    keywords: [삼성바이오로직스, CDMO, 위탁생산, 바이오]
+    source_priority: [filings, news, price]
+  - ticker: CSU.TO
+    name: Constellation Software
+    market: CA
+    thesis: VMS, 연쇄 M&A, ROIC, AI 시대 해자 유지 여부 추적
+    keywords: [Constellation Software, VMS, acquisition, ROIC]
+    source_priority: [news, filings, price]
+  - ticker: TOI.V
+    name: Topicus.com
+    market: CA
+    thesis: CSU 계열 유럽 VMS와 TSS 인수 관련 이벤트 추적
+    keywords: [Topicus, VMS, TSS, acquisition]
+    source_priority: [news, filings, price]
+  - ticker: RELX
+    name: RELX plc
+    market: UK
+    thesis: LexisNexis, Elsevier, 법률 및 연구 데이터 해자 추적
+    keywords: [RELX, LexisNexis, Elsevier, legal AI, research data]
+    source_priority: [news, filings, price]
+  - ticker: WKL.AS
+    name: Wolters Kluwer
+    market: NL
+    thesis: UpToDate, 의료 및 규제 콘텐츠 해자 추적
+    keywords: [Wolters Kluwer, UpToDate, healthcare, regulatory]
+    source_priority: [news, filings, price]
+  - ticker: TRI
+    name: Thomson Reuters
+    market: US
+    thesis: Westlaw, 법률 데이터, AI 계약 관련 이벤트 추적
+    keywords: [Thomson Reuters, Westlaw, legal AI, contract]
+    source_priority: [news, filings, price]
+  - ticker: RLX
+    name: RLX Technology
+    market: US
+    thesis: 전자담배 RELX 이슈 추적, RELX plc와 혼동 방지
+    keywords: [RLX Technology, vaping, e-cigarette, China]
+    source_priority: [news, filings, price]
+  - ticker: HEPS
+    name: Hepsiburada
+    market: US
+    thesis: Kaspi.kz 지분 인수와 터키 전자상거래 이벤트 추적
+    keywords: [Hepsiburada, Kaspi, Turkey, acquisition]
+    source_priority: [news, filings, price]
+  - ticker: KSPI
+    name: Kaspi.kz
+    market: US
+    thesis: Hepsiburada 인수자 관점의 확장 및 핀테크 이벤트 추적
+    keywords: [Kaspi, Kaspi.kz, Hepsiburada, fintech]
+    source_priority: [news, filings, price]
+  - ticker: WLK
+    name: Westlake
+    market: US
+    thesis: 화학, M&A, 수직계열화 관련 주요 이벤트 추적
+    keywords: [Westlake, chemicals, acquisition, vertical integration]
+    source_priority: [news, filings, price]
+  - ticker: LC
+    name: LendingClub
+    market: US
+    thesis: 핀테크 대출 플랫폼의 신용 품질과 예금 조달력 추적
+    keywords: [LendingClub, credit, deposits, loan originations]
+    source_priority: [news, filings, price]
+  - ticker: AFRM
+    name: Affirm
+    market: US
+    thesis: BNPL 성장성과 LendingClub, Upstart 비교 맥락 추적
+    keywords: [Affirm, BNPL, credit, guidance]
+    source_priority: [news, filings, price]
+  - ticker: UPST
+    name: Upstart
+    market: US
+    thesis: AI 대출 모델과 핀테크 대출 비교 맥락 추적
+    keywords: [Upstart, AI lending, credit, loan]
+    source_priority: [news, filings, price]
+  - ticker: SNOW
+    name: Snowflake
+    market: US
+    thesis: 클라우드 데이터 플랫폼 성장성과 AI 데이터 수요 추적
+    keywords: [Snowflake, data cloud, AI, consumption]
+    source_priority: [news, filings, price]
+  - ticker: P911.DE
+    name: Porsche AG
+    market: DE
+    thesis: 명품 브랜드 경쟁력과 상장사 이벤트 추적
+    keywords: [Porsche AG, luxury, brand, automotive]
+    source_priority: [news, filings, price]
+  - ticker: 002821.SZ
+    name: Asymchem
+    market: CN
+    thesis: CDMO 산업과 삼성바이오로직스 비교 맥락 추적
+    keywords: [Asymchem, CDMO, pharma, China]
+    source_priority: [news, filings, price]

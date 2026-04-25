@@ -333,3 +333,34 @@ def test_dart_provider_skips_malformed_entries(
 
     assert len(filings) == 1
     assert filings[0].id == "20260424000001"
+
+
+def test_main_writes_html_and_json_reports(tmp_path: Path, monkeypatch) -> None:
+    from daily_stock_briefing.jobs import run_daily_briefing
+
+    monkeypatch.chdir(tmp_path)
+    Path("config").mkdir()
+    Path("config/watchlist.yaml").write_text(
+        "watchlist:\n"
+        "  - ticker: LC\n"
+        "    name: LendingClub\n"
+        "    market: US\n"
+        "    thesis: funding quality\n"
+        "    keywords: [LendingClub]\n"
+        "    source_priority: [news, filings, price]\n",
+        encoding="utf-8",
+    )
+
+    class _PriceProvider:
+        def fetch_daily_snapshot(self, ticker: str):
+            return None
+
+    monkeypatch.setattr(run_daily_briefing, "YFinancePriceProvider", _PriceProvider)
+
+    exit_code = run_daily_briefing.main(
+        ["--date", "2026-04-24", "--skip-telegram"]
+    )
+
+    assert exit_code == 0
+    assert Path("reports/html/2026-04-24.html").exists()
+    assert Path("reports/json/2026-04-24.json").exists()

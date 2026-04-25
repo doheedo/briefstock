@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Stock Briefing job
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/briefstock
+EnvironmentFile=/opt/briefstock/.env
+ExecStart=/opt/briefstock/deploy/oracle/run_daily_briefing.sh
