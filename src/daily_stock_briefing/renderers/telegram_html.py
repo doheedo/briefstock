@@ -13,6 +13,21 @@ def _format_price(briefing: SymbolBriefing) -> str:
     return f"Price: {price.close:.2f} {escape(price.currency)} ({sign}{price.change_pct:.1f}%)"
 
 
+def _source_links(briefing: SymbolBriefing) -> str:
+    urls: list[str] = []
+    for event in briefing.derived_events:
+        for url in event.source_refs:
+            if url and url not in urls:
+                urls.append(url)
+    if not urls:
+        return ""
+    links = " ".join(
+        f'<a href="{escape(url, quote=True)}">{index}</a>'
+        for index, url in enumerate(urls[:3], start=1)
+    )
+    return f"\n• Sources: {links}"
+
+
 def render_symbol_line(briefing: SymbolBriefing) -> str:
     ticker = escape(briefing.watchlist_item.ticker)
     name = escape(briefing.watchlist_item.name)
@@ -26,6 +41,7 @@ def render_symbol_line(briefing: SymbolBriefing) -> str:
         f"• {_format_price(briefing)}\n"
         f"• Thesis: {summary}"
         f"{question_line}"
+        f"{_source_links(briefing)}"
     )
 
 

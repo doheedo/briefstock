@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 
-from daily_stock_briefing.domain.enums import DailyPriority
+from daily_stock_briefing.domain.enums import DailyPriority, EventCategory, ThesisImpact
 from daily_stock_briefing.domain.models import (
+    CompanyEvent,
     DailyBriefingReport,
     PriceSnapshot,
     SymbolBriefing,
@@ -37,6 +38,17 @@ def _briefing() -> SymbolBriefing:
         thesis_summary="negative: growth slowdown",
         follow_up_questions=["Does usage reaccelerate next quarter?"],
         priority=DailyPriority.HIGH,
+        derived_events=[
+            CompanyEvent(
+                ticker="SNOW",
+                category=EventCategory.GUIDANCE,
+                importance_score=5,
+                thesis_impact=ThesisImpact.NEGATIVE,
+                summary="Growth slowdown",
+                evidence=["Guidance lowered"],
+                source_refs=["https://example.com/source?x=1&y=2"],
+            )
+        ],
     )
 
 
@@ -45,6 +57,7 @@ def test_render_symbol_line_uses_only_supported_tags() -> None:
 
     assert "<b>SNOW</b>" in html
     assert "Price: 104.00 USD (+4.0%)" in html
+    assert '<a href="https://example.com/source?x=1&amp;y=2">1</a>' in html
     for unsupported in ("<ul>", "<li>", "<table>", "<style>", "<script>"):
         assert unsupported not in html
 
@@ -77,3 +90,4 @@ def test_write_html_report_creates_full_report(tmp_path) -> None:
     assert "Daily Stock Briefing - 2026-04-24" in output
     assert "SNOW - Snowflake" in output
     assert "negative: growth slowdown" in output
+    assert 'href="https://example.com/source?x=1&amp;y=2"' in output

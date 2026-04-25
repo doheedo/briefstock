@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from jinja2 import Template
+from jinja2 import Environment, select_autoescape
 
 from daily_stock_briefing.domain.models import DailyBriefingReport
 
-PAGE = Template(
+PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
     """<!doctype html>
 <html lang="ko">
 <head>
@@ -39,6 +39,13 @@ PAGE = Template(
       {% for event in briefing.derived_events %}
       <p><strong>{{ event.category.value }}</strong> / score {{ event.importance_score }} / {{ event.thesis_impact.value }}<br>
       {{ event.summary }}</p>
+      {% if event.source_refs %}
+      <p class="muted">Sources:
+      {% for url in event.source_refs %}
+        <a href="{{ url }}">{{ loop.index }}</a>
+      {% endfor %}
+      </p>
+      {% endif %}
       {% endfor %}
       {% endif %}
       {% if briefing.follow_up_questions %}

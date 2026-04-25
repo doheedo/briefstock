@@ -6,4 +6,6 @@ filings:
   sec: enabled
   dart: enabled
 llm:
-  enabled: false
+  enabled: true
+  provider: auto
+  default_model: llama-3.1-8b-instant

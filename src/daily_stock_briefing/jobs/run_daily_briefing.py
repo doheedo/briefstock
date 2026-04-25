@@ -7,8 +7,12 @@ from dotenv import load_dotenv
 
 from daily_stock_briefing.adapters.filings.dart_adapter import DartFilingProvider
 from daily_stock_briefing.adapters.filings.sec_adapter import SecFilingProvider
+from daily_stock_briefing.adapters.llm.openai_compatible import (
+    OpenAICompatibleLlmClassifier,
+)
 from daily_stock_briefing.adapters.news.http_news_adapter import HttpNewsProvider
 from daily_stock_briefing.adapters.prices.yfinance_adapter import YFinancePriceProvider
+from daily_stock_briefing.domain.enums import DailyPriority
 from daily_stock_briefing.domain.models import DailyBriefingReport, FilingItem, NewsItem
 from daily_stock_briefing.renderers.html_report import write_html_report
 from daily_stock_briefing.renderers.telegram_html import render_telegram_html
@@ -46,6 +50,29 @@ def _build_news_provider() -> HttpNewsProvider | None:
     return HttpNewsProvider(base_url=base_url, api_key=api_key)
 
 
+def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
+    provider = (os.getenv("LLM_PROVIDER") or "").strip().lower()
+    if provider in {"", "auto"} and os.getenv("GROQ_API_KEY"):
+        return OpenAICompatibleLlmClassifier(
+            api_key=os.environ["GROQ_API_KEY"],
+            base_url="https://api.groq.com/openai/v1",
+            model=os.getenv("LLM_MODEL") or "llama-3.1-8b-instant",
+        )
+    if provider in {"none", "false", "off", "disabled"}:
+        return None
+
+    api_key = os.getenv("LLM_API_KEY")
+    base_url = os.getenv("LLM_API_BASE_URL")
+    model = os.getenv("LLM_MODEL")
+    if api_key and base_url and model:
+        return OpenAICompatibleLlmClassifier(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+        )
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", default=_today())
@@ -57,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     watchlist = load_watchlist(Path(args.watchlist))
     price_provider = YFinancePriceProvider()
     news_provider = _build_news_provider()
+    llm_classifier = _build_llm_classifier()
 
     briefings = []
     warnings: list[str] = []
@@ -79,7 +107,14 @@ def main(argv: list[str] | None = None) -> int:
             warnings.append(f"{item.ticker}: filings unavailable ({exc})")
             filings = []
 
-        briefings.append(build_symbol_briefing(item, price, news, filings))
+        briefing = build_symbol_briefing(item, price, news, filings)
+        if (
+            llm_classifier is not None
+            and briefing.derived_events
+            and briefing.priority != DailyPriority.LOW
+        ):
+            briefing = llm_classifier.refine_briefing(briefing)
+        briefings.append(briefing)
 
     report = DailyBriefingReport(
         run_date=args.date,

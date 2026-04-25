@@ -59,9 +59,16 @@ NEWS_API_BASE_URL=
 NEWS_API_KEY=
 SEC_USER_AGENT=DailyStockBriefing/0.1 contact@example.com
 DART_API_KEY=
+LLM_PROVIDER=auto
+LLM_MODEL=llama-3.1-8b-instant
+GROQ_API_KEY=
+LLM_API_BASE_URL=
+LLM_API_KEY=
 ```
 
 SEC can be used without an API key, but requires a responsible `SEC_USER_AGENT`. DART live calls require `DART_API_KEY`.
+
+LLM enrichment is optional but enabled when credentials are present. With `LLM_PROVIDER=auto`, the job uses Groq first when `GROQ_API_KEY` exists. Generic OpenAI-compatible endpoints can be used by setting `LLM_API_BASE_URL`, `LLM_API_KEY`, and `LLM_MODEL`.
 
 ## GitHub Actions
 
@@ -75,6 +82,10 @@ Set these repository secrets:
 - `NEWS_API_KEY`
 - `SEC_USER_AGENT`
 - `DART_API_KEY`
+- `GROQ_API_KEY`
+- `LLM_MODEL`
+- `LLM_API_BASE_URL`
+- `LLM_API_KEY`
 
 ## Oracle Server Deployment
 
