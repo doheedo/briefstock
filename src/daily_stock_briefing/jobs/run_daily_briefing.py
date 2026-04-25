@@ -31,8 +31,8 @@ def _fetch_filings(item) -> list[FilingItem]:
     if item.market.upper().startswith("KR") and os.getenv("DART_API_KEY"):
         return DartFilingProvider(os.environ["DART_API_KEY"]).fetch_filings(item)
     if item.market.upper() in {"US", "USA", "CA", "CANADA"}:
-        user_agent = os.getenv(
-            "SEC_USER_AGENT", "DailyStockBriefing/0.1 contact@example.com"
+        user_agent = os.getenv("SEC_USER_AGENT") or (
+            "DailyStockBriefing/0.1 contact@example.com"
         )
         return SecFilingProvider(user_agent=user_agent).fetch_filings(item)
     return []
