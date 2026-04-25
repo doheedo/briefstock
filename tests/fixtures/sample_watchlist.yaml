@@ -1,0 +1,7 @@
+watchlist:
+  - ticker: 012700.KQ
+    name: 리드코프
+    market: KR
+    thesis: 디케이마린과 엘씨대부 현금흐름, 배당여력 점검
+    keywords: [리드코프, 엘씨대부, 배당]
+    source_priority: [filings, news, price]

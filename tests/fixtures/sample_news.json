@@ -1,0 +1,13 @@
+{
+  "articles": [
+    {
+      "title": "LendingClub raises guidance",
+      "description": "Company updated outlook.",
+      "url": "https://example.com/a?utm_source=test",
+      "publishedAt": "2026-04-24T08:00:00Z",
+      "source": {
+        "name": "Example News"
+      }
+    }
+  ]
+}

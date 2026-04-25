@@ -1,0 +1,104 @@
+{
+  "sec": [
+    {
+      "accessionNumber": "0000001",
+      "form": "8-K",
+      "filingDate": "2026-04-24",
+      "primaryDocDescription": "Current report",
+      "primaryDocument": "doc.htm"
+    }
+  ],
+  "sec_lookup": {
+    "0": {
+      "cik_str": 1409970,
+      "ticker": "LC",
+      "title": "LendingClub Corp"
+    }
+  },
+  "sec_submissions": {
+    "cik": "1409970",
+    "filings": {
+      "recent": {
+        "accessionNumber": [
+          "0001409970-26-000001"
+        ],
+        "form": [
+          "8-K"
+        ],
+        "filingDate": [
+          "2026-04-24"
+        ],
+        "primaryDocument": [
+          "doc.htm"
+        ],
+        "primaryDocDescription": [
+          "Current report"
+        ]
+      }
+    }
+  },
+  "sec_malformed_submissions": {
+    "cik": "1409970",
+    "filings": {
+      "recent": {
+        "accessionNumber": [
+          "0001409970-26-000001",
+          "0001409970-26-000002"
+        ],
+        "form": [
+          "8-K",
+          "10-Q"
+        ],
+        "filingDate": [
+          "2026-04-24",
+          ""
+        ],
+        "primaryDocument": [
+          "doc.htm",
+          "quarterly.htm"
+        ],
+        "primaryDocDescription": [
+          "Current report",
+          "Quarterly report"
+        ]
+      }
+    }
+  },
+  "dart": [
+    {
+      "rcept_no": "20260424000001",
+      "rcept_dt": "20260424",
+      "report_nm": "사업보고서",
+      "flr_nm": "리드코프"
+    }
+  ],
+  "dart_lookup_xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><result><list><corp_code>00126380</corp_code><corp_name>리드코프</corp_name><stock_code>012700</stock_code></list></result>",
+  "dart_list": {
+    "status": "000",
+    "list": [
+      {
+        "rcept_no": "20260424000001",
+        "rcept_dt": "20260424",
+        "report_nm": "사업보고서",
+        "flr_nm": "리드코프"
+      }
+    ]
+  },
+  "dart_malformed_list": {
+    "status": "000",
+    "list": [
+      {
+        "rcept_no": "20260424000001",
+        "rcept_dt": "20260424",
+        "report_nm": "사업보고서",
+        "flr_nm": "리드코프"
+      },
+      {
+        "rcept_no": "20260424000002",
+        "rcept_dt": "",
+        "report_nm": "분기보고서",
+        "flr_nm": "리드코프"
+      }
+    ]
+  }
+}

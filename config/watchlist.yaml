@@ -1,0 +1,13 @@
+watchlist:
+  - ticker: 012700.KQ
+    name: 리드코프
+    market: KR
+    thesis: 디케이마린과 엘씨대부 현금흐름, 배당여력 점검
+    keywords: [리드코프, 엘씨대부, 배당]
+    source_priority: [filings, news, price]
+  - ticker: 033310.KQ
+    name: 엠투엔
+    market: KR
+    thesis: 리드코프 지배구조 및 지분 관련 변수 추적
+    keywords: [엠투엔, 리드코프, 지배구조]
+    source_priority: [filings, news, price]
