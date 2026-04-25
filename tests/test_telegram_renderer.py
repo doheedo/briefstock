@@ -10,6 +10,7 @@ from daily_stock_briefing.domain.models import (
 )
 from daily_stock_briefing.renderers.html_report import write_html_report
 from daily_stock_briefing.renderers.telegram_html import (
+    MAX_TELEGRAM_HTML_LENGTH,
     render_symbol_line,
     render_telegram_html,
 )
@@ -74,6 +75,27 @@ def test_render_telegram_html_escapes_user_text() -> None:
     assert "<b>Daily Briefing 2026-04-24</b>" in html
     assert "Market &lt;mixed&gt;" in html
     assert "<table>" not in html
+
+
+def test_render_telegram_html_truncates_without_breaking_html_tags() -> None:
+    briefing = _briefing().model_copy(
+        update={
+            "thesis_summary": "x" * (MAX_TELEGRAM_HTML_LENGTH + 100),
+            "follow_up_questions": [],
+        }
+    )
+    report = DailyBriefingReport(
+        run_date="2026-04-24",
+        market_summary="Daily delta briefing generated from watchlist sources.",
+        symbol_briefings=[briefing],
+    )
+
+    html = render_telegram_html(report)
+
+    assert len(html) <= MAX_TELEGRAM_HTML_LENGTH
+    assert html.endswith("<i>Full report attached.</i>")
+    assert "Thesis:" not in html
+    assert "<a href=" not in html
 
 
 def test_write_html_report_creates_full_report(tmp_path) -> None:

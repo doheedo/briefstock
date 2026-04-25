@@ -3,6 +3,7 @@ from html import escape
 from daily_stock_briefing.domain.models import DailyBriefingReport, SymbolBriefing
 
 MAX_TELEGRAM_HTML_LENGTH = 3900
+FULL_REPORT_NOTE = "<i>Full report attached.</i>"
 
 
 def _format_price(briefing: SymbolBriefing) -> str:
@@ -50,8 +51,18 @@ def render_telegram_html(report: DailyBriefingReport) -> str:
         f"<b>Daily Briefing {escape(report.run_date)}</b>",
         escape(report.market_summary),
     ]
-    parts.extend(render_symbol_line(briefing) for briefing in report.symbol_briefings)
+    note_suffix = f"\n\n{FULL_REPORT_NOTE}"
+    truncated = False
+
+    for briefing in report.symbol_briefings:
+        candidate_parts = [*parts, render_symbol_line(briefing)]
+        candidate = "\n\n".join(candidate_parts)
+        if len(candidate) + len(note_suffix) > MAX_TELEGRAM_HTML_LENGTH:
+            truncated = True
+            break
+        parts = candidate_parts
+
     rendered = "\n\n".join(parts)
-    if len(rendered) <= MAX_TELEGRAM_HTML_LENGTH:
-        return rendered
-    return rendered[: MAX_TELEGRAM_HTML_LENGTH - 80] + "\n\n<i>Full report attached.</i>"
+    if truncated:
+        return rendered + note_suffix
+    return rendered
