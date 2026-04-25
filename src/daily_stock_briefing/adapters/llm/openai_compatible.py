@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Any
 
 import httpx
@@ -15,15 +16,19 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
         base_url: str,
         model: str,
         timeout: float = 20.0,
+        rpm_limit: int | None = None,
     ) -> None:
         self._api_key = api_key
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._timeout = timeout
+        self._min_interval_seconds = 60.0 / rpm_limit if rpm_limit else 0.0
+        self._last_request_at: float | None = None
 
     def refine_briefing(self, briefing: SymbolBriefing) -> SymbolBriefing:
         payload = self._request_payload(briefing)
         try:
+            self._respect_rate_limit()
             with httpx.Client(timeout=self._timeout) as client:
                 response = client.post(
                     f"{self._base_url}/chat/completions",
@@ -48,14 +53,28 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
         ):
             follow_up_questions = briefing.follow_up_questions
 
+        merged_questions = [*briefing.follow_up_questions]
+        for question in follow_up_questions:
+            question = question.strip()
+            if question not in merged_questions:
+                merged_questions.append(question)
+
         return briefing.model_copy(
             update={
                 "thesis_summary": thesis_summary.strip(),
-                "follow_up_questions": [item.strip() for item in follow_up_questions][
-                    :2
-                ],
+                "follow_up_questions": merged_questions[:4],
             }
         )
+
+    def _respect_rate_limit(self) -> None:
+        if self._min_interval_seconds <= 0:
+            return
+        now = time.monotonic()
+        if self._last_request_at is not None:
+            elapsed = now - self._last_request_at
+            if elapsed < self._min_interval_seconds:
+                time.sleep(self._min_interval_seconds - elapsed)
+        self._last_request_at = now
 
     def _request_payload(self, briefing: SymbolBriefing) -> dict[str, Any]:
         source_items = []

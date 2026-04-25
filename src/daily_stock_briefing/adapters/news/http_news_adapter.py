@@ -41,7 +41,18 @@ def _match_keywords(item: WatchlistItem, raw: dict) -> list[str]:
             content,
         ]
     ).lower()
-    return [keyword for keyword in item.keywords if keyword.lower() in haystack]
+    terms = [*item.keywords, *item.aliases]
+    return [keyword for keyword in terms if keyword.lower() in haystack]
+
+
+def _contains_excluded_keyword(item: WatchlistItem, raw: dict) -> bool:
+    title = _coerce_text(raw.get("title"))
+    description = _coerce_text(raw.get("description"))
+    content = _coerce_text(raw.get("content"))
+    if title is None or description is None or content is None:
+        return False
+    haystack = " ".join([title, description, content]).lower()
+    return any(keyword.lower() in haystack for keyword in item.exclude_keywords)
 
 
 def _coerce_text(value: object, *, allow_none: bool = True) -> str | None:
@@ -70,7 +81,8 @@ class HttpNewsProvider(NewsProvider):
         self._timeout = timeout
 
     def fetch_news(self, item: WatchlistItem) -> list[NewsItem]:
-        params = {"q": " OR ".join([item.name, *item.keywords]), "apiKey": self._api_key}
+        query_terms = [item.name, *item.aliases, *item.keywords]
+        params = {"q": " OR ".join(query_terms), "apiKey": self._api_key}
         try:
             with httpx.Client(timeout=self._timeout) as client:
                 response = client.get(self._base_url, params=params)
@@ -83,6 +95,11 @@ class HttpNewsProvider(NewsProvider):
         news: list[NewsItem] = []
         for raw in payload.get("articles", []):
             if not isinstance(raw, dict):
+                continue
+            if _contains_excluded_keyword(item, raw):
+                continue
+            matched_keywords = _match_keywords(item, raw)
+            if len(matched_keywords) < item.min_keyword_matches:
                 continue
             url = _coerce_text(raw.get("url"), allow_none=False)
             title = _coerce_text(raw.get("title"), allow_none=False)
@@ -121,7 +138,7 @@ class HttpNewsProvider(NewsProvider):
                     canonical_url=canonical_url,
                     published_at=parsed_published_at,
                     source="http_news",
-                    matched_keywords=_match_keywords(item, raw),
+                    matched_keywords=matched_keywords,
                 )
             )
         return news

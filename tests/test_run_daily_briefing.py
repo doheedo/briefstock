@@ -364,3 +364,54 @@ def test_main_writes_html_and_json_reports(tmp_path: Path, monkeypatch) -> None:
     assert exit_code == 0
     assert Path("reports/html/2026-04-24.html").exists()
     assert Path("reports/json/2026-04-24.json").exists()
+
+
+def test_main_filters_watchlist_by_group_and_uses_group_output_name(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from daily_stock_briefing.jobs import run_daily_briefing
+
+    monkeypatch.chdir(tmp_path)
+    Path("config").mkdir()
+    Path("config/watchlist.yaml").write_text(
+        "watchlist:\n"
+        "  - ticker: LC\n"
+        "    name: LendingClub\n"
+        "    market: US\n"
+        "    group: fintech_platform\n"
+        "    thesis: funding quality\n"
+        "    keywords: [LendingClub]\n"
+        "  - ticker: SNOW\n"
+        "    name: Snowflake\n"
+        "    market: US\n"
+        "    group: data_info\n"
+        "    thesis: data platform moat\n"
+        "    keywords: [Snowflake]\n",
+        encoding="utf-8",
+    )
+
+    class _PriceProvider:
+        def fetch_daily_snapshot(self, ticker: str):
+            return None
+
+    monkeypatch.setattr(run_daily_briefing, "YFinancePriceProvider", _PriceProvider)
+
+    exit_code = run_daily_briefing.main(
+        [
+            "--date",
+            "2026-04-24",
+            "--group",
+            "data_info",
+            "--skip-telegram",
+        ]
+    )
+
+    assert exit_code == 0
+    json_path = Path("reports/json/2026-04-24-data_info.json")
+    assert Path("reports/html/2026-04-24-data_info.html").exists()
+    assert json_path.exists()
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    assert [item["watchlist_item"]["ticker"] for item in payload["symbol_briefings"]] == [
+        "SNOW"
+    ]
+    assert "Group: data_info" in payload["market_summary"]

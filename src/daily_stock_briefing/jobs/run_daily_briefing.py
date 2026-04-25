@@ -14,6 +14,10 @@ from daily_stock_briefing.adapters.news.http_news_adapter import HttpNewsProvide
 from daily_stock_briefing.adapters.prices.yfinance_adapter import YFinancePriceProvider
 from daily_stock_briefing.domain.enums import DailyPriority
 from daily_stock_briefing.domain.models import DailyBriefingReport, FilingItem, NewsItem
+from daily_stock_briefing.renderers.chart_renderer import (
+    safe_ticker_filename,
+    write_price_chart,
+)
 from daily_stock_briefing.renderers.html_report import write_html_report
 from daily_stock_briefing.renderers.telegram_html import render_telegram_html
 from daily_stock_briefing.services.config_loader import load_watchlist
@@ -57,7 +61,17 @@ def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
             api_key=os.environ["GROQ_API_KEY"],
             base_url="https://api.groq.com/openai/v1",
             model=os.getenv("LLM_MODEL") or "llama-3.1-8b-instant",
+            rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "30"),
         )
+    if provider in {"", "auto", "nvidia"} and os.getenv("NVIDIA_API_KEY"):
+        model = os.getenv("NVIDIA_LLM_MODEL") or os.getenv("LLM_MODEL")
+        if model:
+            return OpenAICompatibleLlmClassifier(
+                api_key=os.environ["NVIDIA_API_KEY"],
+                base_url="https://integrate.api.nvidia.com/v1",
+                model=model,
+                rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "40"),
+            )
     if provider in {"none", "false", "off", "disabled"}:
         return None
 
@@ -69,6 +83,7 @@ def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
             api_key=api_key,
             base_url=base_url,
             model=model,
+            rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "0") or None,
         )
     return None
 
@@ -77,11 +92,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", default=_today())
     parser.add_argument("--watchlist", default="config/watchlist.yaml")
+    parser.add_argument("--group", default=None)
     parser.add_argument("--skip-telegram", action="store_true")
     args = parser.parse_args(argv)
 
     load_dotenv()
     watchlist = load_watchlist(Path(args.watchlist))
+    if args.group:
+        watchlist = [item for item in watchlist if item.group == args.group]
     price_provider = YFinancePriceProvider()
     news_provider = _build_news_provider()
     llm_classifier = _build_llm_classifier()
@@ -94,6 +112,28 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:  # pragma: no cover - defensive job boundary
             warnings.append(f"{item.ticker}: price unavailable ({exc})")
             price = None
+        if price is not None:
+            try:
+                closes = price_provider.get_cached_closes(item.ticker)
+                if closes:
+                    chart_path = write_price_chart(
+                        ticker=item.ticker,
+                        name=item.name,
+                        closes=closes,
+                        output_dir=Path("reports/charts") / args.date,
+                    )
+                    if chart_path is not None:
+                        price = price.model_copy(
+                            update={
+                                "chart_path": (
+                                    f"../charts/{args.date}/{chart_path.name}"
+                                )
+                            }
+                        )
+                    else:
+                        warnings.append(f"{item.ticker}: chart unavailable")
+            except Exception as exc:  # pragma: no cover - defensive job boundary
+                warnings.append(f"{item.ticker}: chart unavailable ({exc})")
 
         try:
             news = dedupe_news(_fetch_news(item, news_provider))
@@ -118,13 +158,19 @@ def main(argv: list[str] | None = None) -> int:
 
     report = DailyBriefingReport(
         run_date=args.date,
-        market_summary="Daily delta briefing generated from watchlist sources.",
+        market_summary=(
+            "Daily delta briefing generated from watchlist sources."
+            + (f" Group: {args.group}." if args.group else "")
+        ),
         symbol_briefings=briefings,
         delivery_metadata={"warnings": "\n".join(warnings)} if warnings else {},
     )
 
-    html_path = write_html_report(report, Path("reports/html") / f"{args.date}.html")
-    json_path = Path("reports/json") / f"{args.date}.json"
+    output_stem = (
+        f"{args.date}-{safe_ticker_filename(args.group)}" if args.group else args.date
+    )
+    html_path = write_html_report(report, Path("reports/html") / f"{output_stem}.html")
+    json_path = Path("reports/json") / f"{output_stem}.json"
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
 

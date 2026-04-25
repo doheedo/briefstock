@@ -9,3 +9,5 @@ llm:
   enabled: true
   provider: auto
   default_model: llama-3.1-8b-instant
+  groq_rpm_limit: 30
+  nvidia_rpm_limit: 40

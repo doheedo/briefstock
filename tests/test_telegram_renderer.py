@@ -33,9 +33,16 @@ def _briefing() -> SymbolBriefing:
             change=4.0,
             change_pct=4.0,
             currency="USD",
-            as_of=datetime(2026, 4, 24, tzinfo=timezone.utc),
-            source="yfinance",
-        ),
+        as_of=datetime(2026, 4, 24, tzinfo=timezone.utc),
+        source="yfinance",
+        return_5d_pct=-3.4,
+        return_1m_pct=2.1,
+        return_1y_pct=-18.4,
+        benchmark_return_1y_pct=11.2,
+        relative_return_1y_pct=-29.6,
+        rsi_14=37.8,
+        chart_path="../charts/2026-04-24/SNOW.png",
+    ),
         thesis_summary="negative: growth slowdown",
         follow_up_questions=["Does usage reaccelerate next quarter?"],
         priority=DailyPriority.HIGH,
@@ -58,6 +65,9 @@ def test_render_symbol_line_uses_only_supported_tags() -> None:
 
     assert "<b>SNOW</b>" in html
     assert "Price: 104.00 USD (+4.0%)" in html
+    assert "5D: -3.4% / 1M: +2.1% / 1Y: -18.4%" in html
+    assert "S&amp;P500 1Y: +11.2% / Relative: -29.6%p" in html
+    assert "RSI(14): 37.8" in html
     assert '<a href="https://example.com/source?x=1&amp;y=2">1</a>' in html
     for unsupported in ("<ul>", "<li>", "<table>", "<style>", "<script>"):
         assert unsupported not in html
@@ -112,4 +122,7 @@ def test_write_html_report_creates_full_report(tmp_path) -> None:
     assert "Daily Stock Briefing - 2026-04-24" in output
     assert "SNOW - Snowflake" in output
     assert "negative: growth slowdown" in output
+    assert "RSI(14): 37.8" in output
+    assert 'class="chart"' in output
+    assert 'src="../charts/2026-04-24/SNOW.png"' in output
     assert 'href="https://example.com/source?x=1&amp;y=2"' in output

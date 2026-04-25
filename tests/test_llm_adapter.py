@@ -85,7 +85,10 @@ def test_openai_compatible_llm_refines_briefing_with_source_context(
     refined = client.refine_briefing(_briefing())
 
     assert refined.thesis_summary.startswith("LLM 요약")
-    assert refined.follow_up_questions == ["원문 링크의 수치가 일회성인지 확인"]
+    assert refined.follow_up_questions == [
+        "Check source",
+        "원문 링크의 수치가 일회성인지 확인",
+    ]
     assert requests[0]["url"] == "https://api.example.com/v1/chat/completions"
     assert requests[0]["json"]["response_format"] == {"type": "json_object"}
     assert "https://example.com/original" in requests[0]["json"]["messages"][1]["content"]
@@ -109,3 +112,28 @@ def test_openai_compatible_llm_returns_original_on_bad_response(monkeypatch) -> 
     briefing = _briefing()
 
     assert client.refine_briefing(briefing) == briefing
+
+
+def test_openai_compatible_llm_respects_minimum_request_interval(monkeypatch) -> None:
+    requests = []
+    sleeps = []
+    times = iter([100.0, 100.5])
+    monkeypatch.setattr(
+        openai_compatible.httpx,
+        "Client",
+        lambda **kwargs: _FakeClient(requests, **kwargs),
+    )
+    monkeypatch.setattr(openai_compatible.time, "monotonic", lambda: next(times))
+    monkeypatch.setattr(openai_compatible.time, "sleep", sleeps.append)
+    client = OpenAICompatibleLlmClassifier(
+        api_key="secret",
+        base_url="https://api.example.com/v1",
+        model="model-1",
+        rpm_limit=30,
+    )
+
+    client.refine_briefing(_briefing())
+    client.refine_briefing(_briefing())
+
+    assert sleeps == [1.5]
+    assert len(requests) == 2

@@ -14,6 +14,28 @@ def _format_price(briefing: SymbolBriefing) -> str:
     return f"Price: {price.close:.2f} {escape(price.currency)} ({sign}{price.change_pct:.1f}%)"
 
 
+def _format_pct(value: float | None, *, suffix: str = "%") -> str:
+    return "n/a" if value is None else f"{value:+.1f}{suffix}"
+
+
+def _format_number(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:.1f}"
+
+
+def _format_metrics(briefing: SymbolBriefing) -> str:
+    price = briefing.price_snapshot
+    if price is None:
+        return "\n• 5D: n/a / 1M: n/a / 1Y: n/a\n• S&amp;P500 1Y: n/a / Relative: n/a\n• RSI(14): n/a"
+    return (
+        f"\n• 5D: {_format_pct(price.return_5d_pct)} / "
+        f"1M: {_format_pct(price.return_1m_pct)} / "
+        f"1Y: {_format_pct(price.return_1y_pct)}"
+        f"\n• S&amp;P500 1Y: {_format_pct(price.benchmark_return_1y_pct)} / "
+        f"Relative: {_format_pct(price.relative_return_1y_pct, suffix='%p')}"
+        f"\n• RSI(14): {_format_number(price.rsi_14)}"
+    )
+
+
 def _source_links(briefing: SymbolBriefing) -> str:
     urls: list[str] = []
     for event in briefing.derived_events:
@@ -40,6 +62,7 @@ def render_symbol_line(briefing: SymbolBriefing) -> str:
     return (
         f"<b>{ticker}</b> {name} ({escape(briefing.priority.value)})\n"
         f"• {_format_price(briefing)}\n"
+        f"{_format_metrics(briefing)}\n"
         f"• Thesis: {summary}"
         f"{question_line}"
         f"{_source_links(briefing)}"

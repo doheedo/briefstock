@@ -8,6 +8,10 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [kr_bio, data_info, fintech_platform, industrial_luxury]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -15,8 +19,8 @@ jobs:
           python-version: "3.12"
       - run: python -m venv .venv
       - run: ./.venv/bin/python -m pip install -e .[dev]
-      - run: ./.venv/bin/python -m pytest tests/test_config_loader.py tests/test_event_classifier.py tests/test_telegram_renderer.py tests/test_run_daily_briefing.py -v
-      - run: ./.venv/bin/python -m daily_stock_briefing.jobs.run_daily_briefing --date "$(TZ=Asia/Seoul date +%F)"
+      - run: ./.venv/bin/python -m pytest tests -v
+      - run: ./.venv/bin/python -m daily_stock_briefing.jobs.run_daily_briefing --date "$(TZ=Asia/Seoul date +%F)" --group "${{ matrix.group }}"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -26,10 +30,13 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           LLM_PROVIDER: auto
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          LLM_RPM_LIMIT: ${{ secrets.LLM_RPM_LIMIT }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_LLM_MODEL: ${{ secrets.NVIDIA_LLM_MODEL }}
           LLM_API_BASE_URL: ${{ secrets.LLM_API_BASE_URL }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
       - uses: actions/upload-artifact@v7
         with:
-          name: daily-briefing-reports
+          name: daily-briefing-reports-${{ matrix.group }}
           path: reports/

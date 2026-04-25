@@ -16,7 +16,11 @@
 
 - Treat this as a delta briefing system, not a deep research system.
 - Preserve adapter boundaries under `src/daily_stock_briefing/adapters/`.
+- Keep technical indicator logic under `src/daily_stock_briefing/services/`.
+- Keep chart generation under `src/daily_stock_briefing/renderers/` and use yfinance + matplotlib, not image scraping.
+- Keep the fixed benchmark as S&P500 `^GSPC` unless the user explicitly changes scope.
 - Keep Telegram output compatible with Telegram Bot API `parse_mode=HTML`.
+- Do not attach every chart image to Telegram; send compact metrics and attach the HTML report.
 - Do not put `<ul>`, `<li>`, `<table>`, `<style>`, or `<script>` in Telegram messages.
 - Never hardcode API keys or Telegram tokens.
 

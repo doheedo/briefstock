@@ -17,8 +17,15 @@ class WatchlistItem(BaseModel):
     ticker: NonEmptyStr
     name: NonEmptyStr
     market: NonEmptyStr
+    group: NonEmptyStr = "default"
     thesis: NonEmptyStr
     keywords: list[NonEmptyStr] = Field(min_length=1)
+    aliases: list[NonEmptyStr] = Field(default_factory=list)
+    exclude_keywords: list[NonEmptyStr] = Field(default_factory=list)
+    thesis_questions: list[NonEmptyStr] = Field(default_factory=list)
+    red_flags: list[NonEmptyStr] = Field(default_factory=list)
+    positive_signals: list[NonEmptyStr] = Field(default_factory=list)
+    min_keyword_matches: int = 1
     source_priority: list[SourcePriority] = Field(
         default_factory=lambda: [
             SourcePriority.FILINGS,
@@ -47,6 +54,14 @@ class PriceSnapshot(BaseModel):
     currency: str
     as_of: datetime
     source: str
+    return_5d_pct: float | None = None
+    return_1m_pct: float | None = None
+    return_1y_pct: float | None = None
+    benchmark_ticker: str | None = "^GSPC"
+    benchmark_return_1y_pct: float | None = None
+    relative_return_1y_pct: float | None = None
+    rsi_14: float | None = None
+    chart_path: str | None = None
 
 
 class NewsItem(BaseModel):

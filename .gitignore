@@ -6,6 +6,7 @@ __pycache__/
 secrets.local.ps1
 reports/json/*.json
 reports/html/*.html
+reports/charts/
 !reports/html/sample-2026-04-24.html
 dist/
 build/

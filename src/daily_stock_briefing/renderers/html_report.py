@@ -4,6 +4,14 @@ from jinja2 import Environment, select_autoescape
 
 from daily_stock_briefing.domain.models import DailyBriefingReport
 
+
+def _format_pct(value: float | None, *, suffix: str = "%") -> str:
+    return "n/a" if value is None else f"{value:+.1f}{suffix}"
+
+
+def _format_number(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:.1f}"
+
 PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
     """<!doctype html>
 <html lang="ko">
@@ -17,6 +25,8 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
     section { border-top: 1px solid #ddd; padding: 20px 0; }
     .priority { font-weight: 700; }
     .muted { color: #666; }
+    .metrics { line-height: 1.6; }
+    img.chart { width: 100%; max-width: 900px; height: auto; border: 1px solid #e5e5e5; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -30,6 +40,17 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       {% if briefing.price_snapshot %}
       <p>Price: {{ "%.2f"|format(briefing.price_snapshot.close) }} {{ briefing.price_snapshot.currency }}
         ({{ "%+.1f"|format(briefing.price_snapshot.change_pct) }}%)</p>
+      <p class="metrics">
+        5D: {{ format_pct(briefing.price_snapshot.return_5d_pct) }} /
+        1M: {{ format_pct(briefing.price_snapshot.return_1m_pct) }} /
+        1Y: {{ format_pct(briefing.price_snapshot.return_1y_pct) }}<br>
+        S&amp;P500 1Y: {{ format_pct(briefing.price_snapshot.benchmark_return_1y_pct) }} /
+        Relative: {{ format_pct(briefing.price_snapshot.relative_return_1y_pct, suffix="%p") }}<br>
+        RSI(14): {{ format_number(briefing.price_snapshot.rsi_14) }}
+      </p>
+      {% if briefing.price_snapshot.chart_path %}
+      <p><img class="chart" src="{{ briefing.price_snapshot.chart_path }}" alt="{{ briefing.watchlist_item.ticker }} 1Y price and RSI chart"></p>
+      {% endif %}
       {% else %}
       <p class="muted">Price: unavailable</p>
       {% endif %}
@@ -65,5 +86,8 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
 
 def write_html_report(report: DailyBriefingReport, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(PAGE.render(report=report), encoding="utf-8")
+    path.write_text(
+        PAGE.render(report=report, format_pct=_format_pct, format_number=_format_number),
+        encoding="utf-8",
+    )
     return path

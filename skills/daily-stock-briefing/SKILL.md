@@ -7,6 +7,9 @@ description: Repeatable workflow for maintaining the briefstock daily stock brie
 2. Keep provider-specific logic inside `src/daily_stock_briefing/adapters/`.
 3. Keep classification and priority rules inside `src/daily_stock_briefing/services/`.
 4. Keep Telegram HTML limited to supported tags.
-5. Do not hardcode secrets; use `.env`, GitHub Secrets, or server environment files.
-6. Run the narrowest relevant pytest target after each code edit.
-7. Preserve the product shape: daily delta briefing, not deep-dive research.
+5. Keep S&P500 comparison fixed to `^GSPC` and RSI logic in services unless scope changes.
+6. Generate charts with yfinance history and matplotlib under `reports/charts/`; do not scrape Google images.
+7. Do not send every chart image to Telegram; keep Telegram short and rely on the HTML attachment.
+8. Do not hardcode secrets; use `.env`, GitHub Secrets, or server environment files.
+9. Run the narrowest relevant pytest target after each code edit.
+10. Preserve the product shape: daily delta briefing, not deep-dive research.

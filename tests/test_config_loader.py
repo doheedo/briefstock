@@ -11,6 +11,7 @@ def test_load_watchlist_reads_required_fields() -> None:
 
     assert items[0].ticker == "012700.KQ"
     assert items[0].market == "KR"
+    assert items[0].group == "kr_bio"
     assert items[0].keywords == ["리드코프", "엘씨대부", "배당"]
     assert items[0].source_priority == ["filings", "news", "price"]
 
@@ -34,6 +35,7 @@ def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) ->
     items = load_watchlist(path)
 
     assert items[0].source_priority == ["filings", "news", "price"]
+    assert items[0].group == "default"
 
 
 def test_load_watchlist_rejects_invalid_shape(tmp_path: Path) -> None:

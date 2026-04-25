@@ -40,6 +40,21 @@ def _build_follow_up_questions(
         questions.append(
             f"Review price move of {price_snapshot.change_pct:.1f}% against news and filings."
         )
+    if price_snapshot and price_snapshot.rsi_14 is not None:
+        if price_snapshot.rsi_14 < 30:
+            questions.append(
+                "RSI is below 30; check whether the move is event-driven or broad market weakness."
+            )
+        elif price_snapshot.rsi_14 > 70:
+            questions.append(
+                "RSI is above 70; check whether the move reflects fundamentals or short-term overextension."
+            )
+    if (
+        price_snapshot
+        and price_snapshot.relative_return_1y_pct is not None
+        and price_snapshot.relative_return_1y_pct <= -20
+    ):
+        questions.append("Review long-term underperformance versus S&P500.")
     return questions
 
 
