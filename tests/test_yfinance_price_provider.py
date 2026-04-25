@@ -66,6 +66,42 @@ def test_yfinance_provider_populates_returns_rsi_and_benchmark(
     assert calls.count("^GSPC") == 1
 
 
+def test_yfinance_provider_can_use_kospi200_benchmark(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    histories = {
+        "207940.KS": [500000.0 + (index * 1000.0) for index in range(252)],
+        "^KS200": [400.0 + index for index in range(252)],
+    }
+
+    class _FakeTicker:
+        def __init__(self, ticker: str) -> None:
+            self.ticker = ticker
+            self.info = {"currency": "KRW"}
+
+        def history(self, period: str, interval: str):
+            return _FakeHistory(histories[self.ticker])
+
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.prices.yfinance_adapter.yf.Ticker",
+        _FakeTicker,
+    )
+
+    snapshot = YFinancePriceProvider().fetch_daily_snapshot(
+        "207940.KS", benchmark_ticker="^KS200"
+    )
+
+    assert snapshot is not None
+    assert snapshot.benchmark_ticker == "^KS200"
+    assert snapshot.currency == "KRW"
+    assert snapshot.benchmark_return_1y_pct == pytest.approx(
+        (651.0 - 400.0) / 400.0 * 100
+    )
+    assert snapshot.relative_return_1y_pct == pytest.approx(
+        snapshot.return_1y_pct - snapshot.benchmark_return_1y_pct
+    )
+
+
 def test_yfinance_provider_returns_none_when_recent_data_is_invalid(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

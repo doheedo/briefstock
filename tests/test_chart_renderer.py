@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from daily_stock_briefing.renderers.chart_renderer import (
+    chart_title,
     safe_ticker_filename,
     write_price_chart,
 )
@@ -33,3 +34,10 @@ def test_write_price_chart_returns_none_when_data_is_insufficient(tmp_path: Path
 
 def test_safe_ticker_filename_replaces_path_separators() -> None:
     assert safe_ticker_filename("ABC/DEF") == "ABC_DEF"
+
+
+def test_chart_title_uses_ticker_only_when_name_needs_missing_fonts() -> None:
+    assert chart_title("310200.KQ", "애니플러스") == "310200.KQ"
+    assert chart_title("TME", "Tencent Music Entertainment") == (
+        "TME - Tencent Music Entertainment"
+    )

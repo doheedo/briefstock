@@ -6,12 +6,12 @@ watchlist:
     thesis: 디케이마린, 엘씨대부, 배당여력 관련 주요 이슈 추적
     keywords: [리드코프, 디케이마린, 엘씨대부, 배당]
     source_priority: [filings, news, price]
-  - ticker: 033310.KQ
-    name: 엠투엔
+  - ticker: 310200.KQ
+    name: 애니플러스
     market: KR
     group: kr_bio
-    thesis: 리드코프 지배구조와 지분 관련 변수 추적
-    keywords: [엠투엔, 리드코프, 지배구조, 지분]
+    thesis: 콘텐츠, IP, 미디어 사업 흐름과 주요 공시 이벤트 추적
+    keywords: [애니플러스, ANIPLUS, 콘텐츠, IP, 미디어]
     source_priority: [filings, news, price]
   - ticker: 207940.KS
     name: 삼성바이오로직스
@@ -104,12 +104,12 @@ watchlist:
     thesis: AI 대출 모델과 핀테크 대출 비교 맥락 추적
     keywords: [Upstart, AI lending, credit, loan]
     source_priority: [news, filings, price]
-  - ticker: SNOW
-    name: Snowflake
+  - ticker: TME
+    name: Tencent Music Entertainment
     market: US
     group: data_info
-    thesis: 클라우드 데이터 플랫폼 성장성과 AI 데이터 수요 추적
-    keywords: [Snowflake, data cloud, AI, consumption]
+    thesis: 중국 온라인 음악, Tencent 생태계, 구독 성장성과 규제 이벤트 추적
+    keywords: [Tencent Music, TME, online music, subscription, China]
     source_priority: [news, filings, price]
   - ticker: P911.DE
     name: Porsche AG

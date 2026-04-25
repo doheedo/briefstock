@@ -2,7 +2,7 @@
 
 Daily delta briefing for a fixed stock watchlist. The job collects price snapshots, news, SEC/DART filings, classifies company events, writes JSON/HTML reports, and sends a short Telegram HTML summary.
 
-The price layer also tracks 5D, 1M, and 1Y returns, fixed S&P500 benchmark performance via `^GSPC`, relative 1Y performance, RSI(14), and 1Y PNG charts generated directly from yfinance data with matplotlib. Google image/chart crawling is not used.
+The price layer also tracks 5D, 1M, and 1Y returns, benchmark performance, relative 1Y performance, RSI(14), and 1Y PNG charts generated directly from yfinance data with matplotlib. Google image/chart crawling is not used.
 
 ## Setup
 
@@ -56,9 +56,11 @@ Each price section includes:
 
 - Price and 1D change
 - 5D, 1M, and 1Y return
-- S&P500 1Y return using `^GSPC`
-- Relative 1Y return versus S&P500
+- Benchmark 1Y return using `^GSPC` for non-Korean tickers and `^KS200` for Korean tickers
+- Relative 1Y return versus the selected benchmark
 - RSI(14)
+
+Ownership filings such as Form 3, Form 4, Form 5, Form 144, and ownership documents are kept short by default. The report treats related news as the primary summary source; if there is no related news, the filing is shown as a low-priority ownership/insider filing instead of expanding the raw filing text.
 
 ## Telegram
 

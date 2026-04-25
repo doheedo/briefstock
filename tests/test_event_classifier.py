@@ -89,6 +89,40 @@ def test_filing_offering_becomes_financing_event() -> None:
     assert briefing.priority == DailyPriority.HIGH
 
 
+def test_ownership_filings_do_not_raise_priority_without_related_news() -> None:
+    filing = FilingItem(
+        id="filing-2",
+        ticker="LC",
+        filing_type="4",
+        title="FORM 4",
+        filed_at=datetime(2026, 4, 24, tzinfo=timezone.utc),
+        filing_url="https://example.com/form4",
+        source_system="SEC",
+        raw_excerpt="FORM 4",
+    )
+
+    briefing = build_symbol_briefing(_watchlist_item(), _price(0.5), [], [filing])
+
+    assert briefing.derived_events[0].category == EventCategory.INSIDER_TRANSACTION
+    assert briefing.derived_events[0].importance_score == 2
+    assert briefing.derived_events[0].thesis_impact == ThesisImpact.NEUTRAL
+    assert briefing.priority == DailyPriority.LOW
+    assert briefing.thesis_summary == "No thesis-relevant update."
+    assert briefing.follow_up_questions == []
+
+
+def test_underperformance_question_names_actual_benchmark() -> None:
+    price = _price(-1.0).model_copy(
+        update={"benchmark_ticker": "^KS200", "relative_return_1y_pct": -25.0}
+    )
+
+    briefing = build_symbol_briefing(_watchlist_item(), price, [], [])
+
+    assert briefing.follow_up_questions == [
+        "Review long-term underperformance versus ^KS200."
+    ]
+
+
 def test_large_price_move_without_events_becomes_medium_priority() -> None:
     briefing = build_symbol_briefing(_watchlist_item(), _price(8.0), [], [])
 

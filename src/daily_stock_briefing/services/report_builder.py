@@ -34,7 +34,12 @@ def _build_follow_up_questions(
     events: list,
 ) -> list[str]:
     questions: list[str] = []
-    if events:
+    if any(
+        event.importance_score >= 3
+        or event.thesis_impact
+        in {ThesisImpact.POSITIVE, ThesisImpact.NEGATIVE, ThesisImpact.UNKNOWN}
+        for event in events
+    ):
         questions.append("Does this change the core thesis today?")
     if price_snapshot and abs(price_snapshot.change_pct) >= PRICE_MOVE_MEDIUM_THRESHOLD:
         questions.append(
@@ -54,7 +59,8 @@ def _build_follow_up_questions(
         and price_snapshot.relative_return_1y_pct is not None
         and price_snapshot.relative_return_1y_pct <= -20
     ):
-        questions.append("Review long-term underperformance versus S&P500.")
+        benchmark = price_snapshot.benchmark_ticker or "^GSPC"
+        questions.append(f"Review long-term underperformance versus {benchmark}.")
     return questions
 
 

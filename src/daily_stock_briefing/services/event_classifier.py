@@ -8,6 +8,7 @@ from daily_stock_briefing.domain.models import (
 
 NEGATIVE_TERMS = ("cut", "lower", "miss", "weak", "delay", "lawsuit", "probe")
 POSITIVE_TERMS = ("raise", "beat", "strong", "win", "approval", "expands")
+OWNERSHIP_FILING_TYPES = {"3", "4", "5", "144"}
 
 
 def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
@@ -67,29 +68,43 @@ def classify_news_event(item: WatchlistItem, news: NewsItem) -> CompanyEvent:
 
 def classify_filing_event(item: WatchlistItem, filing: FilingItem) -> CompanyEvent:
     text = f"{filing.title} {filing.raw_excerpt}".lower()
+    filing_type = filing.filing_type.strip().upper()
     if "offering" in text or "convertible" in text or "financing" in text:
         category = EventCategory.FINANCING
         impact = ThesisImpact.UNKNOWN
         score = 4
-    elif "insider" in text or "form 4" in text:
+        summary = filing.title
+    elif (
+        filing_type in OWNERSHIP_FILING_TYPES
+        or "form 3" in text
+        or "form 4" in text
+        or "form 5" in text
+        or "ownership document" in text
+    ):
         category = EventCategory.INSIDER_TRANSACTION
-        impact = ThesisImpact.UNKNOWN
-        score = 3
+        impact = ThesisImpact.NEUTRAL
+        score = 2
+        summary = (
+            f"{filing.title}: ownership/insider filing. "
+            "Use related news, if any, for thesis impact."
+        )
     elif "8-k" in text or "current report" in text:
         category = EventCategory.NOISE
         impact = ThesisImpact.NEUTRAL
         score = 2
+        summary = filing.title
     else:
         category = EventCategory.NOISE
         impact = ThesisImpact.NEUTRAL
         score = 2
+        summary = filing.title
 
     return CompanyEvent(
         ticker=item.ticker,
         category=category,
         importance_score=score,
         thesis_impact=impact,
-        summary=filing.title,
+        summary=summary,
         evidence=[filing.raw_excerpt or filing.title],
         source_refs=[filing.filing_url],
     )

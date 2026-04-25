@@ -22,9 +22,12 @@ class YFinancePriceProvider(PriceProvider):
     def __init__(self, benchmark_ticker: str = BENCHMARK_TICKER) -> None:
         self._benchmark_ticker = benchmark_ticker
         self._history_cache: dict[str, CloseHistory] = {}
-        self._benchmark_history: CloseHistory | None = None
+        self._benchmark_history_cache: dict[str, CloseHistory] = {}
 
-    def fetch_daily_snapshot(self, ticker: str) -> PriceSnapshot | None:
+    def fetch_daily_snapshot(
+        self, ticker: str, benchmark_ticker: str | None = None
+    ) -> PriceSnapshot | None:
+        benchmark = benchmark_ticker or self._benchmark_ticker
         try:
             ticker_data = yf.Ticker(ticker)
             history = ticker_data.history(period="1y", interval="1d")
@@ -59,7 +62,7 @@ class YFinancePriceProvider(PriceProvider):
                 metadata_currency = metadata_currency.strip()
                 if metadata_currency:
                     currency = metadata_currency
-        benchmark_return_1y_pct = self._benchmark_return_1y_pct()
+        benchmark_return_1y_pct = self._benchmark_return_1y_pct(benchmark)
         return_1y_pct = _return_from_offset(closes, len(closes) - 1)
 
         return PriceSnapshot(
@@ -74,7 +77,7 @@ class YFinancePriceProvider(PriceProvider):
             return_5d_pct=_return_from_offset(closes, 5),
             return_1m_pct=_return_from_offset(closes, 21),
             return_1y_pct=return_1y_pct,
-            benchmark_ticker=self._benchmark_ticker,
+            benchmark_ticker=benchmark,
             benchmark_return_1y_pct=benchmark_return_1y_pct,
             relative_return_1y_pct=(
                 return_1y_pct - benchmark_return_1y_pct
@@ -88,22 +91,25 @@ class YFinancePriceProvider(PriceProvider):
         history = self._history_cache.get(ticker)
         return list(history.closes) if history else None
 
-    def _benchmark_return_1y_pct(self) -> float | None:
-        if self._benchmark_history is None:
+    def _benchmark_return_1y_pct(self, benchmark_ticker: str) -> float | None:
+        if benchmark_ticker not in self._benchmark_history_cache:
             try:
-                benchmark_data = yf.Ticker(self._benchmark_ticker)
+                benchmark_data = yf.Ticker(benchmark_ticker)
                 history = benchmark_data.history(period="1y", interval="1d")
             except Exception:
-                self._benchmark_history = CloseHistory(closes=[])
+                self._benchmark_history_cache[benchmark_ticker] = CloseHistory(
+                    closes=[]
+                )
             else:
-                self._benchmark_history = CloseHistory(
+                self._benchmark_history_cache[benchmark_ticker] = CloseHistory(
                     closes=_finite_closes(_series_to_values(history.get("Close")))
                 )
-        if len(self._benchmark_history.closes) < 2:
+        benchmark_history = self._benchmark_history_cache[benchmark_ticker]
+        if len(benchmark_history.closes) < 2:
             return None
         return _return_from_offset(
-            self._benchmark_history.closes,
-            len(self._benchmark_history.closes) - 1,
+            benchmark_history.closes,
+            len(benchmark_history.closes) - 1,
         )
 
 

@@ -17,6 +17,14 @@ def safe_ticker_filename(ticker: str) -> str:
     return safe.strip("._") or "ticker"
 
 
+def chart_title(ticker: str, name: str) -> str:
+    try:
+        name.encode("ascii")
+    except UnicodeEncodeError:
+        return ticker
+    return f"{ticker} - {name}" if name else ticker
+
+
 def _clean_closes(closes: Sequence[float | int | None]) -> list[float]:
     clean: list[float] = []
     for value in closes:
@@ -61,7 +69,7 @@ def write_price_chart(
             gridspec_kw={"height_ratios": [3, 1]},
         )
         price_axis.plot(x_values, clean_closes, linewidth=1.4)
-        price_axis.set_title(f"{ticker} - {name}")
+        price_axis.set_title(chart_title(ticker, name))
         price_axis.set_ylabel("Close")
         price_axis.grid(True, alpha=0.25)
 

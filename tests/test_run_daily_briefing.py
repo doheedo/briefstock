@@ -380,7 +380,9 @@ def test_main_writes_html_and_json_reports(tmp_path: Path, monkeypatch) -> None:
     )
 
     class _PriceProvider:
-        def fetch_daily_snapshot(self, ticker: str):
+        def fetch_daily_snapshot(
+            self, ticker: str, benchmark_ticker: str | None = None
+        ):
             return None
 
     monkeypatch.setattr(run_daily_briefing, "YFinancePriceProvider", _PriceProvider)
@@ -419,7 +421,9 @@ def test_main_filters_watchlist_by_group_and_uses_group_output_name(
     )
 
     class _PriceProvider:
-        def fetch_daily_snapshot(self, ticker: str):
+        def fetch_daily_snapshot(
+            self, ticker: str, benchmark_ticker: str | None = None
+        ):
             return None
 
     monkeypatch.setattr(run_daily_briefing, "YFinancePriceProvider", _PriceProvider)
@@ -443,3 +447,43 @@ def test_main_filters_watchlist_by_group_and_uses_group_output_name(
         "SNOW"
     ]
     assert "그룹: data_info" in payload["market_summary"]
+
+
+def test_main_uses_kospi200_benchmark_for_korean_tickers(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from daily_stock_briefing.jobs import run_daily_briefing
+
+    monkeypatch.chdir(tmp_path)
+    Path("config").mkdir()
+    Path("config/watchlist.yaml").write_text(
+        "watchlist:\n"
+        "  - ticker: 207940.KS\n"
+        "    name: Samsung Biologics\n"
+        "    market: KR\n"
+        "    thesis: CDMO tracking\n"
+        "    keywords: [Samsung Biologics]\n"
+        "  - ticker: LC\n"
+        "    name: LendingClub\n"
+        "    market: US\n"
+        "    thesis: funding quality\n"
+        "    keywords: [LendingClub]\n",
+        encoding="utf-8",
+    )
+    calls: list[tuple[str, str | None]] = []
+
+    class _PriceProvider:
+        def fetch_daily_snapshot(
+            self, ticker: str, benchmark_ticker: str | None = None
+        ):
+            calls.append((ticker, benchmark_ticker))
+            return None
+
+    monkeypatch.setattr(run_daily_briefing, "YFinancePriceProvider", _PriceProvider)
+
+    exit_code = run_daily_briefing.main(
+        ["--date", "2026-04-24", "--skip-telegram"]
+    )
+
+    assert exit_code == 0
+    assert calls == [("207940.KS", "^KS200"), ("LC", "^GSPC")]

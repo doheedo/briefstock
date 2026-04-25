@@ -29,6 +29,12 @@ def _today() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
 
+def _benchmark_for_market(market: str) -> str:
+    if market.upper().startswith("KR"):
+        return "^KS200"
+    return "^GSPC"
+
+
 def _fetch_news(item, provider: HttpNewsProvider | None) -> list[NewsItem]:
     if provider is None:
         return []
@@ -126,7 +132,10 @@ def main(argv: list[str] | None = None) -> int:
     warnings: list[str] = []
     for item in watchlist:
         try:
-            price = price_provider.fetch_daily_snapshot(item.ticker)
+            price = price_provider.fetch_daily_snapshot(
+                item.ticker,
+                benchmark_ticker=_benchmark_for_market(item.market),
+            )
         except Exception as exc:  # pragma: no cover - defensive job boundary
             warnings.append(f"{item.ticker}: price unavailable ({exc})")
             price = None
