@@ -43,7 +43,7 @@ def _lookup_dart_corp_code(
     except ElementTree.ParseError:
         return None
 
-    ticker_upper = ticker.strip().upper()
+    ticker_upper = ticker.strip().upper().split(".", 1)[0]
     for node in root.findall(".//list"):
         stock_code = (node.findtext("stock_code") or "").strip().upper()
         corp_code = (node.findtext("corp_code") or "").strip()

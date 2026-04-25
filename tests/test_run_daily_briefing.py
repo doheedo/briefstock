@@ -260,6 +260,34 @@ def test_dart_provider_fetch_filings_looks_up_corp_code_before_list_request(
     assert filings[0].source_system == "DART"
 
 
+def test_dart_provider_normalizes_suffix_bearing_korean_ticker_for_corp_lookup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sample = _load_sample_filings()
+    requests: list[dict[str, Any]] = []
+    responses = [
+        _FakeResponse(content=_make_dart_lookup_zip(sample["dart_lookup_xml"])),
+        _FakeResponse(json_data=sample["dart_list"]),
+    ]
+
+    monkeypatch.setattr(
+        dart_adapter.httpx,
+        "Client",
+        lambda **kwargs: _FakeClient(responses, requests, **kwargs),
+    )
+
+    provider = DartFilingProvider(api_key="dart-test-key")
+    filings = provider.fetch_filings(_make_watchlist_item("012700.KQ", market="KOSDAQ"))
+
+    assert [request["url"] for request in requests] == [
+        "https://opendart.fss.or.kr/api/corpCode.xml",
+        "https://opendart.fss.or.kr/api/list.json",
+    ]
+    assert len(filings) == 1
+    assert filings[0].ticker == "012700.KQ"
+    assert filings[0].id == "20260424000001"
+
+
 def test_dart_provider_returns_empty_when_corp_code_lookup_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
