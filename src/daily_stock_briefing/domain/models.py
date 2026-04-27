@@ -25,6 +25,7 @@ class WatchlistItem(BaseModel):
     thesis_questions: list[NonEmptyStr] = Field(default_factory=list)
     red_flags: list[NonEmptyStr] = Field(default_factory=list)
     positive_signals: list[NonEmptyStr] = Field(default_factory=list)
+    x_query: str | None = None
     min_keyword_matches: int = 1
     source_priority: list[SourcePriority] = Field(
         default_factory=lambda: [
@@ -99,6 +100,19 @@ class CompanyEvent(BaseModel):
     source_refs: list[str] = Field(default_factory=list)
 
 
+class ResearchLinks(BaseModel):
+    google: str | None = None
+    google_news: str | None = None
+    x_search: str | None = None
+    x_cashtag: str | None = None
+    yellowbrick_search: str | None = None
+    sec: str | None = None
+    dart: str | None = None
+    yahoo_finance: str | None = None
+    google_finance: str | None = None
+    naver_finance: str | None = None
+
+
 class SymbolBriefing(BaseModel):
     watchlist_item: WatchlistItem
     price_snapshot: PriceSnapshot | None = None
@@ -108,6 +122,7 @@ class SymbolBriefing(BaseModel):
     thesis_summary: str = ""
     follow_up_questions: list[str] = Field(default_factory=list)
     priority: DailyPriority = DailyPriority.LOW
+    research_links: ResearchLinks = Field(default_factory=ResearchLinks)
 
 
 class DailyBriefingReport(BaseModel):

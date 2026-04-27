@@ -1,9 +1,9 @@
 import re
 from collections.abc import Iterable, Mapping
 from datetime import timedelta
-from urllib.parse import urlsplit, urlunsplit
 
 from daily_stock_briefing.domain.models import NewsItem
+from daily_stock_briefing.utils.url import normalize_url as _normalize_url_or_none
 
 
 def _normalize_title(value: str) -> str:
@@ -19,27 +19,6 @@ def _normalize_url(value: str) -> str:
     if normalized is None:
         return value.strip().lower()
     return normalized
-
-
-def _normalize_url_or_none(value: str) -> str | None:
-    try:
-        parts = urlsplit(value.strip())
-        host = parts.hostname.lower() if parts.hostname else ""
-        port = parts.port
-    except ValueError:
-        return None
-
-    if not host:
-        return None
-    if host.startswith("www."):
-        host = host[4:]
-    if port and not (
-        (parts.scheme.lower() == "http" and port == 80)
-        or (parts.scheme.lower() == "https" and port == 443)
-    ):
-        host = f"{host}:{port}"
-    path = parts.path.rstrip("/")
-    return urlunsplit((parts.scheme.lower(), host, path, "", ""))
 
 
 def _normalized_story_url(item: NewsItem) -> str:

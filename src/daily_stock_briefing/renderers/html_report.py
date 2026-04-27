@@ -46,6 +46,9 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
     .muted { color: #666; }
     .metrics { line-height: 1.6; }
     img.chart { width: 100%; max-width: 900px; height: auto; border: 1px solid #e5e5e5; border-radius: 8px; }
+    .research-links { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .research-links a { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; text-decoration: none; background: #f0f0f5; color: #333; border: 1px solid #d0d0e0; }
+    .research-links a:hover { background: #e0e0f0; }
   </style>
 </head>
 <body>
@@ -94,6 +97,21 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       {% for question in briefing.follow_up_questions %}
       <p>{{ question }}</p>
       {% endfor %}
+      {% endif %}
+      {% set rl = briefing.research_links %}
+      {% if rl.google or rl.google_news or rl.x_search or rl.x_cashtag or rl.yellowbrick_search or rl.sec or rl.dart or rl.yahoo_finance or rl.google_finance or rl.naver_finance %}
+      <div class="research-links">
+        {% if rl.google %}<a href="{{ rl.google }}" target="_blank" rel="noopener">Google</a>{% endif %}
+        {% if rl.google_news %}<a href="{{ rl.google_news }}" target="_blank" rel="noopener">News</a>{% endif %}
+        {% if rl.x_search %}<a href="{{ rl.x_search }}" target="_blank" rel="noopener">X 검색</a>{% endif %}
+        {% if rl.x_cashtag %}<a href="{{ rl.x_cashtag }}" target="_blank" rel="noopener">${{ briefing.watchlist_item.ticker.split('.')[0] }}</a>{% endif %}
+        {% if rl.yellowbrick_search %}<a href="{{ rl.yellowbrick_search }}" target="_blank" rel="noopener">🟡 YellowBrick</a>{% endif %}
+        {% if rl.dart %}<a href="{{ rl.dart }}" target="_blank" rel="noopener">DART</a>{% endif %}
+        {% if rl.sec %}<a href="{{ rl.sec }}" target="_blank" rel="noopener">SEC</a>{% endif %}
+        {% if rl.yahoo_finance %}<a href="{{ rl.yahoo_finance }}" target="_blank" rel="noopener">Yahoo Finance</a>{% endif %}
+        {% if rl.google_finance %}<a href="{{ rl.google_finance }}" target="_blank" rel="noopener">Google Finance</a>{% endif %}
+        {% if rl.naver_finance %}<a href="{{ rl.naver_finance }}" target="_blank" rel="noopener">네이버증권</a>{% endif %}
+      </div>
       {% endif %}
     </section>
     {% endfor %}

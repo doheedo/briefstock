@@ -10,6 +10,7 @@ from daily_stock_briefing.services.event_classifier import (
     classify_filing_event,
     classify_news_event,
 )
+from daily_stock_briefing.services.research_links import build_research_links
 
 PRICE_MOVE_MEDIUM_THRESHOLD = 5.0
 
@@ -94,4 +95,5 @@ def build_symbol_briefing(
         thesis_summary=thesis_summary,
         follow_up_questions=_build_follow_up_questions(price_snapshot, events),
         priority=priority,
+        research_links=build_research_links(item),
     )

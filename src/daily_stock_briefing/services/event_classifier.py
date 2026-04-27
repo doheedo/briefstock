@@ -89,9 +89,13 @@ def classify_filing_event(item: WatchlistItem, filing: FilingItem) -> CompanyEve
             "Use related news, if any, for thesis impact."
         )
     elif "8-k" in text or "current report" in text:
-        category = EventCategory.NOISE
-        impact = ThesisImpact.NEUTRAL
-        score = 2
+        # 8-K is a material event disclosure; content determines impact.
+        # Classify as NOISE only as a fallback until the LLM refiner can
+        # inspect the actual filing text. Treat importance as medium so it
+        # is eligible for LLM refinement rather than being silently dropped.
+        category = EventCategory.REGULATION  # placeholder; refiner may override
+        impact = _impact_from_text(text)
+        score = 3
         summary = filing.title
     else:
         category = EventCategory.NOISE

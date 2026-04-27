@@ -66,6 +66,51 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             }
         )
 
+    def summarize_report(self, briefings: list[SymbolBriefing], default_summary: str) -> str:
+        items = []
+        for b in briefings:
+            if b.thesis_summary and b.thesis_summary != "No thesis-relevant update.":
+                items.append(f"[{b.watchlist_item.ticker}] {b.thesis_summary}")
+        if not items:
+            return default_summary
+
+        payload = {
+            "model": self._model,
+            "temperature": 0.1,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 금융 애널리스트입니다. 아래 제공된 각 종목별 주요 업데이트 내용 전체를 읽고, "
+                        "가장 중요한 핵심 내용만 추려서 전체 브리핑 요약을 딱 3줄로 작성해주세요. "
+                        "마크다운이나 특수문자 없이 평문으로 각 줄을 줄바꿈하여 3줄로 반환하세요."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": "\n".join(items),
+                },
+            ],
+        }
+
+        try:
+            self._respect_rate_limit()
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.post(
+                    f"{self._base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self._api_key}"},
+                    json=payload,
+                )
+                response.raise_for_status()
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+                if content and isinstance(content, str):
+                    return content.strip()
+        except Exception:
+            pass
+
+        return default_summary
+
     def _respect_rate_limit(self) -> None:
         if self._min_interval_seconds <= 0:
             return
@@ -74,6 +119,10 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             elapsed = now - self._last_request_at
             if elapsed < self._min_interval_seconds:
                 time.sleep(self._min_interval_seconds - elapsed)
+        # Timestamp is recorded before the actual HTTP request intentionally.
+        # This ensures the interval is measured from when we *start* sending,
+        # not when the response arrives, so back-to-back calls never exceed
+        # the configured RPM cap even if individual requests complete quickly.
         self._last_request_at = now
 
     def _request_payload(self, briefing: SymbolBriefing) -> dict[str, Any]:

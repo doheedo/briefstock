@@ -1,31 +1,10 @@
 from datetime import UTC, datetime
-from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
 from daily_stock_briefing.adapters.news.base import NewsProvider
 from daily_stock_briefing.domain.models import NewsItem, WatchlistItem
-
-
-def _canonicalize_url(url: str) -> str | None:
-    try:
-        parts = urlsplit(url)
-        host = parts.hostname.lower() if parts.hostname else ""
-        port = parts.port
-    except ValueError:
-        return None
-
-    if not host:
-        return None
-    if host.startswith("www."):
-        host = host[4:]
-    if port and not (
-        (parts.scheme.lower() == "http" and port == 80)
-        or (parts.scheme.lower() == "https" and port == 443)
-    ):
-        host = f"{host}:{port}"
-    path = parts.path.rstrip("/")
-    return urlunsplit((parts.scheme.lower(), host, path, "", ""))
+from daily_stock_briefing.utils.url import normalize_url as _canonicalize_url
 
 
 def _match_keywords(item: WatchlistItem, raw: dict) -> list[str]:
@@ -55,9 +34,9 @@ def _contains_excluded_keyword(item: WatchlistItem, raw: dict) -> bool:
     return any(keyword.lower() in haystack for keyword in item.exclude_keywords)
 
 
-def _coerce_text(value: object, *, allow_none: bool = True) -> str | None:
+def _coerce_text(value: object, *, none_as_empty: bool = True) -> str | None:
     if value is None:
-        return "" if allow_none else None
+        return "" if none_as_empty else None
     if isinstance(value, str):
         return value
     return None
@@ -101,10 +80,10 @@ class HttpNewsProvider(NewsProvider):
             matched_keywords = _match_keywords(item, raw)
             if len(matched_keywords) < item.min_keyword_matches:
                 continue
-            url = _coerce_text(raw.get("url"), allow_none=False)
-            title = _coerce_text(raw.get("title"), allow_none=False)
+            url = _coerce_text(raw.get("url"), none_as_empty=False)
+            title = _coerce_text(raw.get("title"), none_as_empty=False)
             summary = _coerce_text(raw.get("description"))
-            published_at = _coerce_text(raw.get("publishedAt"), allow_none=False)
+            published_at = _coerce_text(raw.get("publishedAt"), none_as_empty=False)
             publisher = _publisher_name(raw.get("source"))
             if (
                 not url

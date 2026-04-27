@@ -19,7 +19,6 @@ from daily_stock_briefing.renderers.chart_renderer import (
     write_price_chart,
 )
 from daily_stock_briefing.renderers.html_report import write_html_report
-from daily_stock_briefing.renderers.telegram_html import render_telegram_html
 from daily_stock_briefing.services.config_loader import load_watchlist
 from daily_stock_briefing.services.news_dedupe import dedupe_news
 from daily_stock_briefing.services.report_builder import build_symbol_briefing
@@ -47,17 +46,21 @@ def _fetch_filings(
     dart_provider: DartFilingProvider | None = None,
     sec_provider: SecFilingProvider | None = None,
 ) -> list[FilingItem]:
-    if item.market.upper().startswith("KR") and os.getenv("DART_API_KEY"):
-        provider = dart_provider or DartFilingProvider(os.environ["DART_API_KEY"])
-        return provider.fetch_filings(item)
+    if item.market.upper().startswith("KR"):
+        # dart_provider must be pre-constructed by the caller so that
+        # _corp_codes_by_stock cache is shared across all tickers in a run.
+        # Falling back to a new instance here would re-download the corpcode
+        # ZIP on every ticker call.
+        if dart_provider is None:
+            return []
+        return dart_provider.fetch_filings(item)
     if item.market.upper() in {"US", "USA", "CA", "CANADA"}:
-        provider = sec_provider
-        if provider is None:
+        if sec_provider is None:
             user_agent = os.getenv("SEC_USER_AGENT") or (
                 "DailyStockBriefing/0.1 contact@example.com"
             )
-            provider = SecFilingProvider(user_agent=user_agent)
-        return provider.fetch_filings(item)
+            sec_provider = SecFilingProvider(user_agent=user_agent)
+        return sec_provider.fetch_filings(item)
     return []
 
 
@@ -118,11 +121,8 @@ def main(argv: list[str] | None = None) -> int:
     price_provider = YFinancePriceProvider()
     news_provider = _build_news_provider()
     llm_classifier = _build_llm_classifier()
-    dart_provider = (
-        DartFilingProvider(os.environ["DART_API_KEY"])
-        if os.getenv("DART_API_KEY")
-        else None
-    )
+    dart_api_key = os.getenv("DART_API_KEY")
+    dart_provider = DartFilingProvider(dart_api_key) if dart_api_key else None
     sec_provider = SecFilingProvider(
         user_agent=os.getenv("SEC_USER_AGENT")
         or "DailyStockBriefing/0.1 contact@example.com"
@@ -187,12 +187,17 @@ def main(argv: list[str] | None = None) -> int:
             briefing = llm_classifier.refine_briefing(briefing)
         briefings.append(briefing)
 
+    default_summary = (
+        "관심종목 소스 기반 데일리 변화 요약."
+        + (f" 그룹: {args.group}." if args.group else "")
+    )
+    market_summary = default_summary
+    if llm_classifier is not None and briefings:
+        market_summary = llm_classifier.summarize_report(briefings, default_summary)
+
     report = DailyBriefingReport(
         run_date=args.date,
-        market_summary=(
-            "관심종목 소스 기반 데일리 변화 요약."
-            + (f" 그룹: {args.group}." if args.group else "")
-        ),
+        market_summary=market_summary,
         symbol_briefings=briefings,
         delivery_metadata={"warnings": "\n".join(warnings)} if warnings else {},
     )
@@ -213,7 +218,6 @@ def main(argv: list[str] | None = None) -> int:
         client = TelegramClient(
             os.environ["TELEGRAM_BOT_TOKEN"], os.environ["TELEGRAM_CHAT_ID"]
         )
-        client.send_html(render_telegram_html(report))
         client.send_document(html_path, caption=f"Daily report {args.date}")
 
     return 0
