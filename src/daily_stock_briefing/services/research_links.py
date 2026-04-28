@@ -77,13 +77,17 @@ def _x_cashtag_url(ticker: str) -> str | None:
     return f"https://x.com/search?q=%24{_qpath(base)}&f=live"
 
 
-def _yellowbrick_search_url(name: str, ticker: str) -> str | None:
-    """Google site:joinyellowbrick.com 검색."""
-    parts = list(filter(None, [name, _base_ticker(ticker)]))
-    if not parts:
+def _yellowbrick_portal_url(ticker: str) -> str | None:
+    """Yellowbrick ticker portal."""
+    base = _base_ticker(ticker)
+    if not base:
         return None
-    site_query = "site:joinyellowbrick.com " + " ".join(parts)
-    return f"https://www.google.com/search?q={_q(site_query)}"
+    return f"https://www.joinyellowbrick.com/?ticker={_qpath(base)}"
+
+
+def yellowbrick_portal_url(ticker: str) -> str | None:
+    """Public helper for Yellowbrick ticker portal links."""
+    return _yellowbrick_portal_url(ticker)
 
 
 def _yahoo_finance_url(ticker: str) -> str | None:
@@ -92,22 +96,42 @@ def _yahoo_finance_url(ticker: str) -> str | None:
     return f"https://finance.yahoo.com/quote/{_qpath(ticker)}"
 
 
+# Yahoo-style ticker suffix → Google Finance exchange code.
+_SUFFIX_TO_GOOGLE_EXCHANGE: dict[str, str] = {
+    "TO": "TSX",
+    "V": "CVE",
+    "CN": "CNSX",
+    "NE": "NEO",
+    "AS": "AMS",
+    "L": "LON",
+    "SW": "SWX",
+    "KS": "KRX",
+    "KQ": "KRX",
+}
+
+
 def _google_finance_url(ticker: str, market: str) -> str | None:
-    """Google Finance는 'TICKER:EXCHANGE' 형식을 선호."""
+    """Google Finance는 'SYMBOL:EXCHANGE' 형식을 선호. 접미사가 있으면 접미사 우선."""
     base = _base_ticker(ticker)
     if not base:
         return None
-    # 거래소 코드 매핑 (없으면 ticker만)
-    exchange_map: dict[str, str] = {
-        "KR": "KRX",
-        "US": "NASDAQ",   # 최선 노력 — 거래소 확정 불가
-        "CA": "TSX",
-        "NL": "AMS",
-        "DE": "ETR",
-        "CN": "SHE",
-    }
-    exchange = exchange_map.get(market.upper())
-    gf_ticker = f"{base}:{exchange}" if exchange else base
+    gf_ticker: str | None = None
+    if "." in ticker:
+        suf = ticker.rsplit(".", 1)[-1].upper()
+        ex = _SUFFIX_TO_GOOGLE_EXCHANGE.get(suf)
+        if ex:
+            gf_ticker = f"{base}:{ex}"
+    if gf_ticker is None:
+        exchange_map: dict[str, str] = {
+            "KR": "KRX",
+            "US": "NASDAQ",
+            "CA": "TSX",
+            "NL": "AMS",
+            "DE": "ETR",
+            "CN": "SHE",
+        }
+        exchange = exchange_map.get(market.upper())
+        gf_ticker = f"{base}:{exchange}" if exchange else base
     return f"https://www.google.com/finance/quote/{_qpath(gf_ticker)}"
 
 
@@ -166,7 +190,7 @@ def _build(item: WatchlistItem) -> ResearchLinks:
     google_news = _google_news_url(name, ticker)
     x_search = _x_search_url(kw_query) if kw_query else None
     x_cashtag = _x_cashtag_url(ticker) if base else None
-    yellowbrick_search = _yellowbrick_search_url(name, ticker)
+    yellowbrick_search = _yellowbrick_portal_url(ticker)
     yahoo_finance = _yahoo_finance_url(ticker)
     google_finance = _google_finance_url(ticker, market)
 

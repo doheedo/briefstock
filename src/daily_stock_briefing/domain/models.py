@@ -100,6 +100,17 @@ class CompanyEvent(BaseModel):
     source_refs: list[str] = Field(default_factory=list)
 
 
+class YellowbrickPitchSection(BaseModel):
+    """Recent Yellowbrick / stock_pitch metadata for HTML briefings."""
+
+    search_url: str
+    article_url: str | None = None
+    pitch_date: str | None = None
+    summary_ko: str | None = None
+    source_excerpt_en: str | None = None
+    error: str | None = None
+
+
 class ResearchLinks(BaseModel):
     google: str | None = None
     google_news: str | None = None
@@ -123,6 +134,7 @@ class SymbolBriefing(BaseModel):
     follow_up_questions: list[str] = Field(default_factory=list)
     priority: DailyPriority = DailyPriority.LOW
     research_links: ResearchLinks = Field(default_factory=ResearchLinks)
+    yellowbrick_pitch: YellowbrickPitchSection | None = None
 
 
 class DailyBriefingReport(BaseModel):

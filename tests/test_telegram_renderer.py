@@ -67,7 +67,7 @@ def test_render_symbol_line_uses_only_supported_tags() -> None:
     assert "<b>SNOW</b>" in html
     assert "가격: 104.00 USD (+4.0%)" in html
     assert "5D: -3.4% / 1M: +2.1% / 1Y: -18.4%" in html
-    assert "S&amp;P500 1Y: +11.2% / Relative: -29.6%p" in html
+    assert "S&amp;P 500 1Y: +11.2% / Relative: -29.6%p" in html
     assert "RSI(14): 37.8" in html
     assert '<a href="https://example.com/source?x=1&amp;y=2">1</a>' in html
     for unsupported in ("<ul>", "<li>", "<table>", "<style>", "<script>"):

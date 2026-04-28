@@ -4,6 +4,7 @@ from pathlib import Path
 from jinja2 import Environment, select_autoescape
 
 from daily_stock_briefing.domain.models import DailyBriefingReport
+from daily_stock_briefing.services.benchmark_display import benchmark_display_name
 
 
 def _priority_label(value: str) -> str:
@@ -66,7 +67,7 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
         5D: {{ format_pct(briefing.price_snapshot.return_5d_pct) }} /
         1M: {{ format_pct(briefing.price_snapshot.return_1m_pct) }} /
         1Y: {{ format_pct(briefing.price_snapshot.return_1y_pct) }}<br>
-        S&amp;P500 1Y: {{ format_pct(briefing.price_snapshot.benchmark_return_1y_pct) }} /
+        {{ benchmark_label(briefing.price_snapshot) }} 1Y: {{ format_pct(briefing.price_snapshot.benchmark_return_1y_pct) }} /
         Relative: {{ format_pct(briefing.price_snapshot.relative_return_1y_pct, suffix="%p") }}<br>
         RSI(14): {{ format_number(briefing.price_snapshot.rsi_14) }}
       </p>
@@ -113,6 +114,18 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
         {% if rl.naver_finance %}<a href="{{ rl.naver_finance }}" target="_blank" rel="noopener">네이버증권</a>{% endif %}
       </div>
       {% endif %}
+      {% if briefing.yellowbrick_pitch %}
+      <h3>Yellowbrick 피칭 (최근 30일)</h3>
+      <p class="muted">포털: <a href="{{ briefing.yellowbrick_pitch.search_url }}" target="_blank" rel="noopener">joinyellowbrick.com</a></p>
+      {% if briefing.yellowbrick_pitch.article_url %}
+      <p class="muted">원문: <a href="{{ briefing.yellowbrick_pitch.article_url }}" target="_blank" rel="noopener">링크</a>{% if briefing.yellowbrick_pitch.pitch_date %} (피칭일 {{ briefing.yellowbrick_pitch.pitch_date }}){% endif %}</p>
+      {% endif %}
+      {% if briefing.yellowbrick_pitch.error %}
+      <p class="muted">{{ briefing.yellowbrick_pitch.error }}</p>
+      {% elif briefing.yellowbrick_pitch.summary_ko %}
+      <p>{{ briefing.yellowbrick_pitch.summary_ko }}</p>
+      {% endif %}
+      {% endif %}
     </section>
     {% endfor %}
   </main>
@@ -131,6 +144,9 @@ def write_html_report(report: DailyBriefingReport, path: Path) -> Path:
             format_number=_format_number,
             priority_label=_priority_label,
             chart_src=lambda chart_path: _chart_src(chart_path, path),
+            benchmark_label=lambda ps: benchmark_display_name(ps.benchmark_ticker)
+            if ps
+            else "Benchmark",
         ),
         encoding="utf-8",
     )

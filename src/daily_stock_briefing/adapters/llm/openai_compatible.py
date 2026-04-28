@@ -111,6 +111,52 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
 
         return default_summary
 
+    def summarize_yellowbrick_pitch(
+        self,
+        english_text: str,
+        *,
+        title: str | None = None,
+    ) -> str | None:
+        """Short Korean summary of an external pitch article; returns None on failure."""
+        text = english_text.strip()
+        if not text:
+            return None
+        payload = {
+            "model": self._model,
+            "temperature": 0.2,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 한국어로 간결한 투자 브리핑을 씁니다. "
+                        "주어진 영어 본문을 바탕으로 Yellowbrick/외부 피칭 요지를 "
+                        "4~6문장 한국어로 요약하세요. 새 사실을 지어내지 마세요."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (f"제목: {title}\n\n" if title else "") + text[:14000],
+                },
+            ],
+        }
+        try:
+            self._respect_rate_limit()
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.post(
+                    f"{self._base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self._api_key}"},
+                    json=payload,
+                )
+                response.raise_for_status()
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+                if content and isinstance(content, str):
+                    out = content.strip()
+                    return out if out else None
+        except Exception:
+            return None
+        return None
+
     def _respect_rate_limit(self) -> None:
         if self._min_interval_seconds <= 0:
             return

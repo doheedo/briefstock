@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -19,9 +20,25 @@ from daily_stock_briefing.renderers.chart_renderer import (
     write_price_chart,
 )
 from daily_stock_briefing.renderers.html_report import write_html_report
+from daily_stock_briefing.renderers.telegram_html import render_telegram_html
 from daily_stock_briefing.services.config_loader import load_watchlist
 from daily_stock_briefing.services.news_dedupe import dedupe_news
 from daily_stock_briefing.services.report_builder import build_symbol_briefing
+from daily_stock_briefing.services.yellowbrick_enrichment import enrich_symbol_with_yellowbrick
+
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _load_environment() -> None:
+    env_path = _project_root() / ".env"
+    if env_path.is_file():
+        load_dotenv(dotenv_path=env_path, override=False)
+    load_dotenv(override=False)
 
 
 def _today() -> str:
@@ -72,6 +89,11 @@ def _build_news_provider() -> HttpNewsProvider | None:
     return HttpNewsProvider(base_url=base_url, api_key=api_key)
 
 
+def _yellowbrick_enabled() -> bool:
+    flag = (os.getenv("YELLOWBRICK_ENABLED") or "").strip().lower()
+    return flag in ("1", "true", "yes", "on")
+
+
 def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
     provider = (os.getenv("LLM_PROVIDER") or "").strip().lower()
     if provider in {"", "auto"} and os.getenv("GROQ_API_KEY"):
@@ -114,7 +136,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--skip-telegram", action="store_true")
     args = parser.parse_args(argv)
 
-    load_dotenv()
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    _load_environment()
     watchlist = load_watchlist(Path(args.watchlist))
     if args.group:
         watchlist = [item for item in watchlist if item.group == args.group]
@@ -185,6 +208,8 @@ def main(argv: list[str] | None = None) -> int:
             and briefing.priority != DailyPriority.LOW
         ):
             briefing = llm_classifier.refine_briefing(briefing)
+        if _yellowbrick_enabled():
+            briefing = enrich_symbol_with_yellowbrick(briefing, llm_classifier)
         briefings.append(briefing)
 
     default_summary = (
@@ -210,14 +235,19 @@ def main(argv: list[str] | None = None) -> int:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
 
-    if not args.skip_telegram and os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv(
-        "TELEGRAM_CHAT_ID"
-    ):
+    if args.skip_telegram:
+        _LOGGER.info("Telegram skipped: --skip-telegram")
+    elif not os.getenv("TELEGRAM_BOT_TOKEN"):
+        _LOGGER.info("Telegram skipped: TELEGRAM_BOT_TOKEN not set")
+    elif not os.getenv("TELEGRAM_CHAT_ID"):
+        _LOGGER.info("Telegram skipped: TELEGRAM_CHAT_ID not set")
+    else:
         from daily_stock_briefing.adapters.telegram.client import TelegramClient
 
         client = TelegramClient(
             os.environ["TELEGRAM_BOT_TOKEN"], os.environ["TELEGRAM_CHAT_ID"]
         )
+        client.send_html(render_telegram_html(report))
         client.send_document(html_path, caption=f"Daily report {args.date}")
 
     return 0
