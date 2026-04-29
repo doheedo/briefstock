@@ -15,10 +15,7 @@ from daily_stock_briefing.adapters.news.http_news_adapter import HttpNewsProvide
 from daily_stock_briefing.adapters.prices.yfinance_adapter import YFinancePriceProvider
 from daily_stock_briefing.domain.enums import DailyPriority
 from daily_stock_briefing.domain.models import DailyBriefingReport, FilingItem, NewsItem
-from daily_stock_briefing.renderers.chart_renderer import (
-    safe_ticker_filename,
-    write_price_chart,
-)
+from daily_stock_briefing.renderers.chart_renderer import write_price_chart
 from daily_stock_briefing.renderers.html_report import write_html_report
 from daily_stock_briefing.renderers.telegram_html import render_telegram_html
 from daily_stock_briefing.services.config_loader import load_watchlist
@@ -140,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
     _load_environment()
     watchlist = load_watchlist(Path(args.watchlist))
     if args.group:
-        watchlist = [item for item in watchlist if item.group == args.group]
+        _LOGGER.info("Group filter is ignored in unified delivery mode: %s", args.group)
     price_provider = YFinancePriceProvider()
     news_provider = _build_news_provider()
     llm_classifier = _build_llm_classifier()
@@ -212,10 +209,7 @@ def main(argv: list[str] | None = None) -> int:
             briefing = enrich_symbol_with_yellowbrick(briefing, llm_classifier)
         briefings.append(briefing)
 
-    default_summary = (
-        "관심종목 소스 기반 데일리 변화 요약."
-        + (f" 그룹: {args.group}." if args.group else "")
-    )
+    default_summary = "관심종목 소스 기반 데일리 변화 요약."
     market_summary = default_summary
     if llm_classifier is not None and briefings:
         market_summary = llm_classifier.summarize_report(briefings, default_summary)
@@ -227,9 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         delivery_metadata={"warnings": "\n".join(warnings)} if warnings else {},
     )
 
-    output_stem = (
-        f"{args.date}-{safe_ticker_filename(args.group)}" if args.group else args.date
-    )
+    output_stem = args.date
     html_path = write_html_report(report, Path("reports/html") / f"{output_stem}.html")
     json_path = Path("reports/json") / f"{output_stem}.json"
     json_path.parent.mkdir(parents=True, exist_ok=True)

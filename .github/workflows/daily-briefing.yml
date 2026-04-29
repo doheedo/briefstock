@@ -8,10 +8,6 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        group: [kr_bio, data_info, fintech_platform, industrial_luxury]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -20,7 +16,7 @@ jobs:
       - run: python -m venv .venv
       - run: ./.venv/bin/python -m pip install -e .[dev]
       - run: ./.venv/bin/python -m pytest tests -v
-      - run: ./.venv/bin/python -m daily_stock_briefing.jobs.run_daily_briefing --date "$(TZ=Asia/Seoul date +%F)" --group "${{ matrix.group }}"
+      - run: ./.venv/bin/python -m daily_stock_briefing.jobs.run_daily_briefing --date "$(TZ=Asia/Seoul date +%F)"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -38,5 +34,5 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
       - uses: actions/upload-artifact@v7
         with:
-          name: daily-briefing-reports-${{ matrix.group }}
+          name: daily-briefing-reports
           path: reports/

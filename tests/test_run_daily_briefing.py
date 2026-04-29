@@ -396,7 +396,7 @@ def test_main_writes_html_and_json_reports(tmp_path: Path, monkeypatch) -> None:
     assert Path("reports/json/2026-04-24.json").exists()
 
 
-def test_main_filters_watchlist_by_group_and_uses_group_output_name(
+def test_main_ignores_group_and_uses_unified_output_name(
     tmp_path: Path, monkeypatch
 ) -> None:
     from daily_stock_briefing.jobs import run_daily_briefing
@@ -429,24 +429,19 @@ def test_main_filters_watchlist_by_group_and_uses_group_output_name(
     monkeypatch.setattr(run_daily_briefing, "YFinancePriceProvider", _PriceProvider)
 
     exit_code = run_daily_briefing.main(
-        [
-            "--date",
-            "2026-04-24",
-            "--group",
-            "data_info",
-            "--skip-telegram",
-        ]
+        ["--date", "2026-04-24", "--group", "data_info", "--skip-telegram"]
     )
 
     assert exit_code == 0
-    json_path = Path("reports/json/2026-04-24-data_info.json")
-    assert Path("reports/html/2026-04-24-data_info.html").exists()
+    json_path = Path("reports/json/2026-04-24.json")
+    assert Path("reports/html/2026-04-24.html").exists()
     assert json_path.exists()
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert [item["watchlist_item"]["ticker"] for item in payload["symbol_briefings"]] == [
+        "LC",
         "SNOW"
     ]
-    assert "그룹: data_info" in payload["market_summary"]
+    assert "그룹: data_info" not in payload["market_summary"]
 
 
 def test_main_uses_kospi200_benchmark_for_korean_tickers(

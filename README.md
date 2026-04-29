@@ -34,7 +34,7 @@ Optional fields include `group`, `aliases`, `exclude_keywords`, `thesis_question
 .\.venv\Scripts\python.exe -m daily_stock_briefing.jobs.run_daily_briefing --date 2026-04-25 --skip-telegram
 ```
 
-Run one group only:
+Run with an optional group argument (ignored in unified delivery mode):
 
 ```powershell
 .\.venv\Scripts\python.exe -m daily_stock_briefing.jobs.run_daily_briefing --date 2026-04-25 --group data_info --skip-telegram
@@ -46,7 +46,7 @@ Outputs:
 - `reports/json/YYYY-MM-DD.json`
 - `reports/charts/YYYY-MM-DD/{ticker}.png`
 
-When `--group` is used, HTML/JSON filenames include the group suffix, for example `reports/html/YYYY-MM-DD-data_info.html`.
+`--group` is accepted for backward compatibility but ignored. The pipeline always writes a single consolidated output per run.
 
 ## Reports
 
@@ -104,12 +104,7 @@ LLM enrichment is optional but enabled when credentials are present. With `LLM_P
 
 The workflow runs daily at `23:00 UTC`, which is `08:00 Asia/Seoul`.
 
-The workflow runs the watchlist in four matrix groups to keep each daily batch below GitHub Actions runtime limits:
-
-- `kr_bio`
-- `data_info`
-- `fintech_platform`
-- `industrial_luxury`
+The workflow runs once per day and sends one consolidated Telegram briefing (DM + HTML attachment).
 
 Set these repository secrets:
 
