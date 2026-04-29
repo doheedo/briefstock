@@ -14,6 +14,8 @@ jobs:
       ORACLE_PORT: ${{ secrets.ORACLE_PORT }}
       PROJECT_DIR: /opt/briefstock
     steps:
+      - uses: actions/checkout@v4
+
       - name: Configure SSH
         run: |
           set -euo pipefail
@@ -25,10 +27,19 @@ jobs:
       - name: Deploy
         run: |
           set -euo pipefail
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude '.venv/' \
+            --exclude '.env' \
+            --exclude 'logs/' \
+            --exclude 'reports/json/*.json' \
+            --exclude 'reports/html/*.html' \
+            --exclude 'reports/charts/' \
+            -e "ssh -i ~/.ssh/oracle.key -p ${ORACLE_PORT:-22}" \
+            ./ "$ORACLE_USER@$ORACLE_HOST:$PROJECT_DIR/"
           ssh -i ~/.ssh/oracle.key -p "${ORACLE_PORT:-22}" "$ORACLE_USER@$ORACLE_HOST" \
             "set -euo pipefail
              cd '$PROJECT_DIR'
-             git pull --ff-only
              .venv/bin/python -m pip install -e .
              sudo cp deploy/oracle/daily-stock-briefing.service /etc/systemd/system/
              sudo cp deploy/oracle/daily-stock-briefing.timer /etc/systemd/system/
