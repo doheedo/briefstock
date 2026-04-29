@@ -112,6 +112,32 @@ class YellowbrickPitchSection(BaseModel):
     error: str | None = None
 
 
+class WagnHoldingItem(BaseModel):
+    ticker: str
+    name: str
+    weight_pct: float
+
+
+class WagnHoldingChange(BaseModel):
+    ticker: str
+    name: str
+    previous_weight_pct: float | None = None
+    current_weight_pct: float | None = None
+    delta_pct: float | None = None
+    change_type: str
+
+
+class WagnHoldingsSection(BaseModel):
+    as_of_date: str | None = None
+    summary_ko: str = ""
+    source_url: str
+    download_url: str
+    total_holdings: int = 0
+    top_holdings: list[WagnHoldingItem] = Field(default_factory=list)
+    notable_changes: list[WagnHoldingChange] = Field(default_factory=list)
+    error: str | None = None
+
+
 class ResearchLinks(BaseModel):
     google: str | None = None
     google_news: str | None = None
@@ -142,4 +168,5 @@ class DailyBriefingReport(BaseModel):
     run_date: str
     market_summary: str
     symbol_briefings: list[SymbolBriefing]
+    wagn_holdings: WagnHoldingsSection | None = None
     delivery_metadata: dict[str, str] = Field(default_factory=dict)

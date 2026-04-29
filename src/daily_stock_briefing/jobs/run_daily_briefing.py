@@ -22,6 +22,9 @@ from daily_stock_briefing.renderers.html_report import write_html_report
 from daily_stock_briefing.services.config_loader import load_watchlist
 from daily_stock_briefing.services.news_dedupe import dedupe_news
 from daily_stock_briefing.services.report_builder import build_symbol_briefing
+from daily_stock_briefing.services.wagn_holdings_enrichment import (
+    build_wagn_holdings_section,
+)
 from daily_stock_briefing.services.yellowbrick_enrichment import enrich_symbol_with_yellowbrick
 
 
@@ -257,6 +260,7 @@ def main(argv: list[str] | None = None) -> int:
         run_date=args.date,
         market_summary=market_summary,
         symbol_briefings=briefings,
+        wagn_holdings=build_wagn_holdings_section(args.date),
         delivery_metadata={"warnings": "\n".join(warnings)} if warnings else {},
     )
 

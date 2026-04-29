@@ -56,6 +56,46 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
   <main>
     <h1>데일리 종목 브리핑 - {{ report.run_date }}</h1>
     <p>{{ report.market_summary }}</p>
+    {% if report.wagn_holdings %}
+    <section>
+      <h2>WAGN ETF Holdings 모니터링</h2>
+      <p>{{ report.wagn_holdings.summary_ko }}</p>
+      <p class="muted">
+        기준일: {{ report.wagn_holdings.as_of_date or "n/a" }} /
+        전체 종목 수: {{ report.wagn_holdings.total_holdings }}
+      </p>
+      <p class="muted">
+        출처:
+        <a href="{{ report.wagn_holdings.source_url }}" target="_blank" rel="noopener">Fund Summary</a> /
+        <a href="{{ report.wagn_holdings.download_url }}" target="_blank" rel="noopener">Download Full Holdings</a>
+      </p>
+      {% if report.wagn_holdings.error %}
+      <p class="muted">{{ report.wagn_holdings.error }}</p>
+      {% endif %}
+      {% if report.wagn_holdings.notable_changes %}
+      <h3>비중/구성 변화</h3>
+      {% for ch in report.wagn_holdings.notable_changes %}
+      <p>
+        <strong>{{ ch.ticker }}</strong> {{ ch.name }}:
+        {% if ch.change_type == "added" %}
+        신규 편입 (현재 {{ format_pct(ch.current_weight_pct) }})
+        {% elif ch.change_type == "removed" %}
+        제외 (이전 {{ format_pct(ch.previous_weight_pct) }})
+        {% else %}
+        {{ format_pct(ch.previous_weight_pct) }} → {{ format_pct(ch.current_weight_pct) }}
+        ({{ format_pct(ch.delta_pct, suffix="%p") }})
+        {% endif %}
+      </p>
+      {% endfor %}
+      {% endif %}
+      {% if report.wagn_holdings.top_holdings %}
+      <h3>상위 보유 비중</h3>
+      {% for item in report.wagn_holdings.top_holdings[:10] %}
+      <p>{{ item.ticker }} {{ item.name }}: {{ format_pct(item.weight_pct) }}</p>
+      {% endfor %}
+      {% endif %}
+    </section>
+    {% endif %}
     {% for briefing in report.symbol_briefings %}
     <section>
       <h2>{{ briefing.watchlist_item.ticker }} - {{ briefing.watchlist_item.name }}</h2>
