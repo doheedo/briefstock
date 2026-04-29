@@ -19,7 +19,6 @@ from daily_stock_briefing.domain.enums import DailyPriority
 from daily_stock_briefing.domain.models import DailyBriefingReport, FilingItem, NewsItem
 from daily_stock_briefing.renderers.chart_renderer import write_price_chart
 from daily_stock_briefing.renderers.html_report import write_html_report
-from daily_stock_briefing.renderers.telegram_html import render_telegram_html
 from daily_stock_briefing.services.config_loader import load_watchlist
 from daily_stock_briefing.services.news_dedupe import dedupe_news
 from daily_stock_briefing.services.report_builder import build_symbol_briefing
@@ -279,8 +278,10 @@ def main(argv: list[str] | None = None) -> int:
         client = TelegramClient(
             os.environ["TELEGRAM_BOT_TOKEN"], os.environ["TELEGRAM_CHAT_ID"]
         )
-        client.send_html(render_telegram_html(report))
-        client.send_document(html_path, caption=f"Daily report {args.date}")
+        try:
+            client.send_document(html_path, caption=f"Daily report {args.date}")
+        except Exception as exc:  # pragma: no cover - defensive delivery boundary
+            _LOGGER.warning("Telegram send_document failed: %s", exc)
 
     return 0
 

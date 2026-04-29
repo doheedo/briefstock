@@ -10,7 +10,7 @@ watchlist:
     name: 애니플러스
     market: KR
     group: kr_bio
-    thesis: 콘텐츠, IP, 미디어 사업 흐름과 주요 공시 이벤트 추적
+    thesis: IP 확장 퀄리티, 밸류에이션 리레이팅, 실적 모멘텀 지속 여부 추적
     keywords: [애니플러스, ANIPLUS, 콘텐츠, IP, 미디어]
     source_priority: [filings, news, price]
   - ticker: 207940.KS
@@ -24,14 +24,14 @@ watchlist:
     name: Constellation Software
     market: CA
     group: data_info
-    thesis: VMS, 연쇄 M&A, ROIC, AI 시대 해자 유지 여부 추적
+    thesis: 고ROIC 퀄리티, 인수 후 가치창출 밸류, EPS 모멘텀 지속 여부 추적
     keywords: [Constellation Software, VMS, acquisition, ROIC]
     source_priority: [news, filings, price]
   - ticker: TOI.V
     name: Topicus.com
     market: CA
     group: data_info
-    thesis: CSU 계열 유럽 VMS와 TSS 인수 관련 이벤트 추적
+    thesis: 유럽 VMS 퀄리티, 인수 적정가 밸류, 통합 시너지 모멘텀 추적
     keywords: [Topicus, VMS, TSS, acquisition]
     source_priority: [news, filings, price]
   - ticker: RELX
@@ -73,7 +73,7 @@ watchlist:
     name: Kaspi.kz
     market: US
     group: fintech_platform
-    thesis: Hepsiburada 인수자 관점의 확장 및 핀테크 이벤트 추적
+    thesis: 슈퍼앱 퀄리티, 성장 대비 멀티플 밸류, 거래액 모멘텀 추적
     keywords: [Kaspi, Kaspi.kz, Hepsiburada, fintech]
     source_priority: [news, filings, price]
   - ticker: WLK
@@ -108,7 +108,7 @@ watchlist:
     name: Tencent Music Entertainment
     market: US
     group: data_info
-    thesis: 중국 온라인 음악, Tencent 생태계, 구독 성장성과 규제 이벤트 추적
+    thesis: 플랫폼 퀄리티, 현금흐름 밸류, ARPU·구독 모멘텀 추적
     keywords: [Tencent Music, TME, online music, subscription, China]
     source_priority: [news, filings, price]
   - ticker: P911.DE
@@ -124,4 +124,130 @@ watchlist:
     group: kr_bio
     thesis: CDMO 산업과 삼성바이오로직스 비교 맥락 추적
     keywords: [Asymchem, CDMO, pharma, China]
+    source_priority: [news, filings, price]
+  - ticker: ^VIX
+    name: Cboe Volatility Index (VIX)
+    market: US
+    group: data_info
+    thesis: 위험회피 심리 모멘텀과 레짐 전환 신호 추적(헤지 타이밍 참고)
+    keywords: [VIX, volatility index, risk appetite, market stress]
+    source_priority: [news, price]
+  - ticker: UMG.AS
+    name: Universal Music Group N.V.
+    market: NL
+    group: data_info
+    thesis: 카탈로그 퀄리티, 로열티 현금흐름 밸류, 스트리밍 성장 모멘텀 추적
+    keywords: [UMG, Universal Music, streaming, royalty, catalog]
+    source_priority: [news, filings, price]
+  - ticker: QSR
+    name: Restaurant Brands International Inc.
+    market: US
+    group: industrial_luxury
+    thesis: 프랜차이즈 모델 퀄리티, FCF 밸류, 동일매장 매출 모멘텀 추적
+    keywords: [QSR, Burger King, Tim Hortons, Popeyes, franchise]
+    source_priority: [news, filings, price]
+  - ticker: PINS
+    name: Pinterest, Inc. Class A
+    market: US
+    group: data_info
+    thesis: 광고 플랫폼 퀄리티, 수익화 대비 밸류, MAU·ARPU 모멘텀 추적
+    keywords: [Pinterest, PINS, ad monetization, users, commerce]
+    source_priority: [news, filings, price]
+  - ticker: NU
+    name: Nu Holdings Ltd. Class A
+    market: US
+    group: fintech_platform
+    thesis: 디지털뱅킹 퀄리티, 고성장 대비 밸류, 고객·수익성 모멘텀 추적
+    keywords: [Nu Holdings, Nubank, LatAm, digital bank, credit]
+    source_priority: [news, filings, price]
+  - ticker: BRK-B
+    name: Berkshire Hathaway Inc. Class B
+    market: US
+    group: industrial_luxury
+    thesis: 자본배분 퀄리티, 내재가치 할인 밸류, 영업이익 모멘텀 추적
+    keywords: [Berkshire Hathaway, BRK.B, insurance float, capital allocation]
+    source_priority: [news, filings, price]
+  - ticker: UBER
+    name: Uber Technologies, Inc.
+    market: US
+    group: fintech_platform
+    thesis: 플랫폼 네트워크 퀄리티, 이익전환 밸류, 예약총액 모멘텀 추적
+    keywords: [Uber, rideshare, delivery, take rate, profitability]
+    source_priority: [news, filings, price]
+  - ticker: AMZN
+    name: Amazon.com, Inc.
+    market: US
+    group: data_info
+    thesis: AWS+광고 퀄리티, 현금창출력 밸류, 마진 레버리지 모멘텀 추적
+    keywords: [Amazon, AWS, e-commerce, advertising, margin]
+    source_priority: [news, filings, price]
+  - ticker: WISE.L
+    name: Wise PLC Class A
+    market: UK
+    group: fintech_platform
+    thesis: 저비용 결제망 퀄리티, 멀티플 합리성 밸류, 송금량 모멘텀 추적
+    keywords: [Wise, remittance, cross-border payments, pricing]
+    source_priority: [news, filings, price]
+  - ticker: VFC
+    name: V.F. Corporation
+    market: US
+    group: industrial_luxury
+    thesis: 턴어라운드 실행 퀄리티, 다운사이드 밸류, 재고·마진 모멘텀 추적
+    keywords: [VF Corporation, Vans, The North Face, margin]
+    source_priority: [news, filings, price]
+  - ticker: BFF.MI
+    name: BFF Bank SpA
+    market: IT
+    group: fintech_platform
+    thesis: 니치 금융 퀄리티, 배당·P/B 밸류, 순이자이익 모멘텀 추적
+    keywords: [BFF Bank, Italy, specialty finance, funding]
+    source_priority: [news, filings, price]
+  - ticker: GOOG
+    name: Alphabet Inc. (Google)
+    market: US
+    group: data_info
+    thesis: 검색·클라우드 퀄리티, 현금창출 밸류, AI 수익화 모멘텀 추적
+    keywords: [Alphabet, Google, search ads, GCP, AI]
+    source_priority: [news, filings, price]
+  - ticker: 6862.HK
+    name: Haidilao International Holding Ltd.
+    market: HK
+    group: industrial_luxury
+    thesis: 운영효율 퀄리티, 회복국면 밸류, 객단가·회전율 모멘텀 추적
+    keywords: [Haidilao, "6862", China restaurant, expansion, margin]
+    source_priority: [news, filings, price]
+  - ticker: META
+    name: Meta Platforms Inc Class A
+    market: US
+    group: data_info
+    thesis: 광고 엔진 퀄리티, 이익률 기반 밸류, 광고단가 모멘텀 추적
+    keywords: [Meta, Facebook, Instagram, Reels, AI]
+    source_priority: [news, filings, price]
+  - ticker: CVE
+    name: Cenovus Energy Inc.
+    market: US
+    group: industrial_luxury
+    thesis: 저원가 자산 퀄리티, 자산가치 대비 밸류, 크랙스프레드 모멘텀 추적
+    keywords: [Cenovus, oil sands, refining margin, energy]
+    source_priority: [news, filings, price]
+  - ticker: NVO
+    name: Novo Nordisk A/S
+    market: US
+    group: kr_bio
+    thesis: GLP-1 파이프라인 퀄리티, 성장 프리미엄 밸류, 처방 모멘텀 추적
+    keywords: [Novo Nordisk, obesity, diabetes, GLP-1]
+    source_priority: [news, filings, price]
+  - ticker: 5842.T
+    name: Integral Corporation
+    market: JP
+    group: data_info
+    thesis: 딜소싱 퀄리티, NAV 할인 밸류, 엑시트 성과 모멘텀 추적
+    keywords: [Integral, private equity, Japan, portfolio]
+    source_priority: [news, filings, price]
+  - ticker: ADYEN.AS
+    name: Adyen NV
+    market: NL
+    group: fintech_platform
+    thesis: 엔터프라이즈 결제 퀄리티, 성장조정 밸류, TPV·테이크레이트 모멘텀 추적
+    keywords: [Adyen, payments, enterprise, TPV, margin]
     source_priority: [news, filings, price]
