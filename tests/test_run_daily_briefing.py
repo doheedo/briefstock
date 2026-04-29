@@ -15,6 +15,7 @@ from daily_stock_briefing.adapters.filings.sec_adapter import (
     normalize_sec_filing,
 )
 from daily_stock_briefing.domain.models import FilingItem, WatchlistItem
+from daily_stock_briefing.jobs.run_daily_briefing import _build_llm_classifier
 
 
 def _load_sample_filings() -> dict[str, Any]:
@@ -361,6 +362,24 @@ def test_dart_provider_skips_malformed_entries(
 
     assert len(filings) == 1
     assert filings[0].id == "20260424000001"
+
+
+def test_build_llm_classifier_prefers_nvidia_when_auto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NVIDIA_API_KEY", "nvidia-secret")
+    monkeypatch.setenv("NVIDIA_LLM_MODEL", "nvidia-model")
+    monkeypatch.setenv("GROQ_API_KEY", "groq-secret")
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("LLM_MODEL", raising=False)
+    monkeypatch.delenv("LLM_RPM_LIMIT", raising=False)
+
+    classifier = _build_llm_classifier()
+
+    assert classifier is not None
+    assert classifier._base_url == "https://integrate.api.nvidia.com/v1"
+    assert classifier._model == "nvidia-model"
+    assert classifier._min_interval_seconds == 1.5
 
 
 def test_main_writes_html_and_json_reports(tmp_path: Path, monkeypatch) -> None:

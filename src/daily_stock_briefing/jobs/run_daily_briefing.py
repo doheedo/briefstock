@@ -132,13 +132,6 @@ def _yellowbrick_enabled() -> bool:
 
 def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
     provider = (os.getenv("LLM_PROVIDER") or "").strip().lower()
-    if provider in {"", "auto"} and os.getenv("GROQ_API_KEY"):
-        return OpenAICompatibleLlmClassifier(
-            api_key=os.environ["GROQ_API_KEY"],
-            base_url="https://api.groq.com/openai/v1",
-            model=os.getenv("LLM_MODEL") or "llama-3.1-8b-instant",
-            rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "30"),
-        )
     if provider in {"", "auto", "nvidia"} and os.getenv("NVIDIA_API_KEY"):
         model = os.getenv("NVIDIA_LLM_MODEL") or os.getenv("LLM_MODEL")
         if model:
@@ -148,6 +141,13 @@ def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
                 model=model,
                 rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "40"),
             )
+    if provider in {"", "auto"} and os.getenv("GROQ_API_KEY"):
+        return OpenAICompatibleLlmClassifier(
+            api_key=os.environ["GROQ_API_KEY"],
+            base_url="https://api.groq.com/openai/v1",
+            model=os.getenv("LLM_MODEL") or "llama-3.1-8b-instant",
+            rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "30"),
+        )
     if provider in {"none", "false", "off", "disabled"}:
         return None
 
