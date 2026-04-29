@@ -108,18 +108,24 @@ def test_ownership_filings_do_not_raise_priority_without_related_news() -> None:
     assert briefing.derived_events[0].thesis_impact == ThesisImpact.NEUTRAL
     assert briefing.priority == DailyPriority.LOW
     assert briefing.thesis_summary == "No thesis-relevant update."
-    assert briefing.follow_up_questions == []
+    assert briefing.follow_up_questions == [
+        "Calculate insider net buy amount versus annual compensation (%); flag if 50% or higher."
+    ]
 
 
 def test_underperformance_question_names_actual_benchmark() -> None:
     price = _price(-1.0).model_copy(
-        update={"benchmark_ticker": "^KS200", "relative_return_1y_pct": -25.0}
+        update={
+            "benchmark_ticker": "^KS200",
+            "relative_return_1y_pct": -25.0,
+            "benchmark_corr_20d": 0.83,
+        }
     )
 
     briefing = build_symbol_briefing(_watchlist_item(), price, [], [])
 
     assert briefing.follow_up_questions == [
-        "Review long-term underperformance versus ^KS200."
+        "Review long-term underperformance versus ^KS200 with 20D correlation (0.83)."
     ]
 
 

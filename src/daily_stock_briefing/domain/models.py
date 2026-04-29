@@ -61,6 +61,7 @@ class PriceSnapshot(BaseModel):
     benchmark_ticker: str | None = "^GSPC"
     benchmark_return_1y_pct: float | None = None
     relative_return_1y_pct: float | None = None
+    benchmark_corr_20d: float | None = None
     rsi_14: float | None = None
     chart_path: str | None = None
 

@@ -202,7 +202,11 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                         "You write concise Korean daily stock briefings. "
                         "Summarize only the new information. Preserve uncertainty. "
                         "Do not invent facts or URLs. Return JSON only with exactly "
-                        "these keys: thesis_summary, follow_up_questions."
+                        "these keys: thesis_summary, follow_up_questions. "
+                        "Never output generic questions like 'Does this change the core thesis today?'. "
+                        "When mentioning relative weakness, include actionable checks (benchmark correlation, filing/news linkage). "
+                        "If insider filings are present, ask for net buy/sell versus annual compensation ratio and flag >=50%. "
+                        "If 8-K is present, ask to summarize concrete item-level disclosures."
                     ),
                 },
                 {

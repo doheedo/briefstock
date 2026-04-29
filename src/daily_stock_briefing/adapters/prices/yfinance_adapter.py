@@ -64,6 +64,12 @@ class YFinancePriceProvider(PriceProvider):
                     currency = metadata_currency
         benchmark_return_1y_pct = self._benchmark_return_1y_pct(benchmark)
         return_1y_pct = _return_from_offset(closes, len(closes) - 1)
+        benchmark_closes = self._benchmark_history_cache.get(benchmark, CloseHistory([])).closes
+        benchmark_corr_20d = _correlation_from_recent_returns(
+            closes,
+            benchmark_closes,
+            lookback=20,
+        )
 
         return PriceSnapshot(
             ticker=ticker,
@@ -84,6 +90,7 @@ class YFinancePriceProvider(PriceProvider):
                 if return_1y_pct is not None and benchmark_return_1y_pct is not None
                 else None
             ),
+            benchmark_corr_20d=benchmark_corr_20d,
             rsi_14=calculate_rsi(closes, period=14),
         )
 
@@ -154,3 +161,35 @@ def _return_from_offset(closes: Sequence[float], offset: int) -> float | None:
     if start == 0:
         return None
     return ((end - start) / start) * 100
+
+
+def _returns(closes: Sequence[float]) -> list[float]:
+    out: list[float] = []
+    for prev, cur in zip(closes, closes[1:]):
+        if prev == 0:
+            continue
+        out.append((cur - prev) / prev)
+    return out
+
+
+def _correlation_from_recent_returns(
+    closes: Sequence[float],
+    benchmark_closes: Sequence[float],
+    *,
+    lookback: int,
+) -> float | None:
+    series = _returns(closes)
+    benchmark_series = _returns(benchmark_closes)
+    n = min(len(series), len(benchmark_series), lookback)
+    if n < 5:
+        return None
+    x = series[-n:]
+    y = benchmark_series[-n:]
+    mean_x = sum(x) / n
+    mean_y = sum(y) / n
+    cov = sum((a - mean_x) * (b - mean_y) for a, b in zip(x, y))
+    var_x = sum((a - mean_x) ** 2 for a in x)
+    var_y = sum((b - mean_y) ** 2 for b in y)
+    if var_x <= 0 or var_y <= 0:
+        return None
+    return cov / math.sqrt(var_x * var_y)

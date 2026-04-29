@@ -31,17 +31,12 @@ def _priority_for_events(
 
 
 def _build_follow_up_questions(
+    item: WatchlistItem,
     price_snapshot: PriceSnapshot | None,
     events: list,
+    filing_items: list[FilingItem],
 ) -> list[str]:
     questions: list[str] = []
-    if any(
-        event.importance_score >= 3
-        or event.thesis_impact
-        in {ThesisImpact.POSITIVE, ThesisImpact.NEGATIVE, ThesisImpact.UNKNOWN}
-        for event in events
-    ):
-        questions.append("Does this change the core thesis today?")
     if price_snapshot and abs(price_snapshot.change_pct) >= PRICE_MOVE_MEDIUM_THRESHOLD:
         questions.append(
             f"Review price move of {price_snapshot.change_pct:.1f}% against news and filings."
@@ -61,7 +56,36 @@ def _build_follow_up_questions(
         and price_snapshot.relative_return_1y_pct <= -20
     ):
         benchmark = price_snapshot.benchmark_ticker or "^GSPC"
-        questions.append(f"Review long-term underperformance versus {benchmark}.")
+        corr = price_snapshot.benchmark_corr_20d
+        if corr is not None:
+            questions.append(
+                f"Review long-term underperformance versus {benchmark} with 20D correlation ({corr:.2f})."
+            )
+        else:
+            questions.append(f"Review long-term underperformance versus {benchmark}.")
+
+    has_8k = any((f.filing_type or "").strip().upper() == "8-K" for f in filing_items)
+    has_insider = any(
+        (f.filing_type or "").strip().upper() in {"3", "4", "5", "144"}
+        for f in filing_items
+    )
+    if has_8k:
+        if item.ticker.upper() in {"BRK-B", "BRK.B", "BRK"}:
+            questions.append(
+                "Summarize latest 8-K items and assess impact on insurance float trajectory."
+            )
+        else:
+            questions.append(
+                "Summarize latest 8-K items and assess direct thesis impact."
+            )
+    if has_insider:
+        questions.append(
+            "Calculate insider net buy amount versus annual compensation (%); flag if 50% or higher."
+        )
+    if item.ticker.upper() == "UPST":
+        questions.append(
+            "Identify next release timing for model-performance data and key competitor updates."
+        )
     return questions
 
 
@@ -93,7 +117,12 @@ def build_symbol_briefing(
         filings=filing_items[:3],
         derived_events=events,
         thesis_summary=thesis_summary,
-        follow_up_questions=_build_follow_up_questions(price_snapshot, events),
+        follow_up_questions=_build_follow_up_questions(
+            item,
+            price_snapshot,
+            events,
+            filing_items,
+        ),
         priority=priority,
         research_links=build_research_links(item),
     )
