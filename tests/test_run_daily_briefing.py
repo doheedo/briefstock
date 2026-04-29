@@ -382,6 +382,23 @@ def test_build_llm_classifier_prefers_nvidia_when_auto(
     assert classifier._min_interval_seconds == 1.5
 
 
+def test_build_llm_classifier_uses_nvidia_default_model_in_auto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NVIDIA_API_KEY", "nvidia-secret")
+    monkeypatch.setenv("GROQ_API_KEY", "groq-secret")
+    monkeypatch.setenv("LLM_MODEL", "llama-3.1-8b-instant")
+    monkeypatch.delenv("NVIDIA_LLM_MODEL", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("LLM_RPM_LIMIT", raising=False)
+
+    classifier = _build_llm_classifier()
+
+    assert classifier is not None
+    assert classifier._base_url == "https://integrate.api.nvidia.com/v1"
+    assert classifier._model == "deepseek-ai/deepseek-v4-pro"
+
+
 def test_main_writes_html_and_json_reports(tmp_path: Path, monkeypatch) -> None:
     from daily_stock_briefing.jobs import run_daily_briefing
 

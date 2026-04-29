@@ -133,7 +133,7 @@ def _yellowbrick_enabled() -> bool:
 def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
     provider = (os.getenv("LLM_PROVIDER") or "").strip().lower()
     if provider in {"", "auto", "nvidia"} and os.getenv("NVIDIA_API_KEY"):
-        model = os.getenv("NVIDIA_LLM_MODEL") or os.getenv("LLM_MODEL")
+        model = os.getenv("NVIDIA_LLM_MODEL") or "deepseek-ai/deepseek-v4-pro"
         if model:
             return OpenAICompatibleLlmClassifier(
                 api_key=os.environ["NVIDIA_API_KEY"],
