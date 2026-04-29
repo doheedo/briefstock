@@ -15,6 +15,17 @@ def _base_ticker(ticker: str) -> str:
     return ticker.split(".")[0]
 
 
+def _looks_like_subscription_placeholder(text: str) -> bool:
+    normalized = " ".join(text.lower().split())
+    markers = [
+        "paid subscribers",
+        "upgrade your subscription",
+        "upgrade to yellowbrick premium",
+        "full portfolio allocation",
+    ]
+    return sum(1 for marker in markers if marker in normalized) >= 2
+
+
 def enrich_symbol_with_yellowbrick(
     briefing: SymbolBriefing,
     llm: OpenAICompatibleLlmClassifier | None,
@@ -47,12 +58,16 @@ def enrich_symbol_with_yellowbrick(
 
     summary_ko: str | None = None
     body_for_llm = extract_readable_text(candidate.read_more_url)
+    if candidate.teaser and (
+        not body_for_llm or _looks_like_subscription_placeholder(body_for_llm)
+    ):
+        body_for_llm = candidate.teaser
     section.source_excerpt_en = body_for_llm[:1200] if body_for_llm else None
 
     if llm is not None and body_for_llm.strip():
         summary_ko = llm.summarize_yellowbrick_pitch(
             body_for_llm,
-            title=briefing.watchlist_item.name,
+            title=candidate.title or briefing.watchlist_item.name,
         )
 
     if not summary_ko and body_for_llm:

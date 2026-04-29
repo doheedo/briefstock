@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from urllib.parse import urlencode, urljoin
 
 import httpx
@@ -20,6 +20,8 @@ _DEFAULT_UA = (
 class YellowbrickArticleCandidate:
     read_more_url: str
     pitch_date: str | None = None
+    title: str | None = None
+    teaser: str | None = None
 
 
 def _extract_date_iso(text: str) -> str | None:
@@ -67,6 +69,10 @@ def find_recent_read_more_candidate(
         return None
 
     cutoff = datetime.now(UTC).date() - timedelta(days=days)
+    script_candidate = _find_candidate_in_next_payload(response.text, cutoff)
+    if script_candidate is not None:
+        return script_candidate
+
     anchors = tree.xpath("//a[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'read full article')]")
     for anchor in anchors:
         href = anchor.get("href")
@@ -85,6 +91,50 @@ def find_recent_read_more_candidate(
     return None
 
 
+def _decode_next_string(value: str) -> str:
+    value = value.replace(r"\/", "/")
+    try:
+        return bytes(value, "utf-8").decode("unicode_escape")
+    except UnicodeDecodeError:
+        return value
+
+
+def _find_candidate_in_next_payload(
+    html_text: str,
+    cutoff: date,
+) -> YellowbrickArticleCandidate | None:
+    """
+    Next.js may ship stock pitches in flight script data without rendered anchors.
+    Extract the newest pitch object from that payload.
+    """
+    if "initialStockPitches" not in html_text:
+        return None
+
+    pitch_pattern = re.compile(
+        r'\{\\"id\\":.*?'
+        r'\\"url\\":\\"(?P<url>https?://.*?)(?<!\\\\)\\".*?'
+        r'\\"dateOriginal\\":\\"(?P<date>\d{4}-\d{2}-\d{2})\\".*?'
+        r'\\"title\\":\\"(?P<title>.*?)(?<!\\\\)\\".*?'
+        r'\\"oneLinerText\\":\\"(?P<teaser>.*?)(?<!\\\\)\\"',
+        re.DOTALL,
+    )
+
+    for match in pitch_pattern.finditer(html_text):
+        date_iso = match.group("date")
+        try:
+            if datetime.strptime(date_iso, "%Y-%m-%d").date() < cutoff:
+                continue
+        except ValueError:
+            continue
+        return YellowbrickArticleCandidate(
+            read_more_url=_decode_next_string(match.group("url")),
+            pitch_date=date_iso,
+            title=_decode_next_string(match.group("title")),
+            teaser=_decode_next_string(match.group("teaser")),
+        )
+    return None
+
+
 def extract_readable_text(url: str, *, timeout: float = 25.0, max_chars: int = 12000) -> str:
     """
     Fetch ``url`` and return plain text from readability's main content.
@@ -98,7 +148,7 @@ def extract_readable_text(url: str, *, timeout: float = 25.0, max_chars: int = 1
         ) as client:
             response = client.get(url)
             response.raise_for_status()
-            raw = response.content
+            raw = response.text
     except Exception:
         return ""
 
