@@ -30,6 +30,8 @@ jobs:
           rsync -az --delete \
             --exclude '.git/' \
             --exclude '.venv/' \
+            --exclude '__pycache__/' \
+            --exclude '*.pyc' \
             --exclude '.env' \
             --exclude 'logs/' \
             --exclude 'reports/json/*.json' \

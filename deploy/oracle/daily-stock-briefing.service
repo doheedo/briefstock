@@ -5,6 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+User=ubuntu
+Group=ubuntu
 WorkingDirectory=/opt/briefstock
 EnvironmentFile=/opt/briefstock/.env
 ExecStart=/usr/bin/env bash /opt/briefstock/deploy/oracle/run_daily_briefing.sh
