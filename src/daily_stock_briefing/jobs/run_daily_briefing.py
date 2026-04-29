@@ -139,6 +139,7 @@ def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
                 api_key=os.environ["NVIDIA_API_KEY"],
                 base_url="https://integrate.api.nvidia.com/v1",
                 model=model,
+                timeout=float(os.getenv("NVIDIA_LLM_TIMEOUT_SECONDS") or "120"),
                 rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "40"),
             )
     if provider in {"", "auto"} and os.getenv("GROQ_API_KEY"):

@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 from typing import Any
 
@@ -6,6 +7,8 @@ import httpx
 
 from daily_stock_briefing.adapters.llm.base import LlmClassifier
 from daily_stock_briefing.domain.models import SymbolBriefing
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAICompatibleLlmClassifier(LlmClassifier):
@@ -37,7 +40,8 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                 )
                 response.raise_for_status()
                 data = response.json()
-        except Exception:
+        except Exception as exc:
+            logger.warning("LLM briefing refinement failed: %s", exc)
             return briefing
 
         parsed = _extract_json_content(data)
@@ -106,7 +110,8 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                 content = data["choices"][0]["message"]["content"]
                 if content and isinstance(content, str):
                     return content.strip()
-        except Exception:
+        except Exception as exc:
+            logger.warning("LLM report summary failed: %s", exc)
             pass
 
         return default_summary
@@ -153,7 +158,8 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                 if content and isinstance(content, str):
                     out = content.strip()
                     return out if out else None
-        except Exception:
+        except Exception as exc:
+            logger.warning("LLM Yellowbrick summary failed: %s", exc)
             return None
         return None
 

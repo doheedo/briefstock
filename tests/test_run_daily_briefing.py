@@ -379,6 +379,7 @@ def test_build_llm_classifier_prefers_nvidia_when_auto(
     assert classifier is not None
     assert classifier._base_url == "https://integrate.api.nvidia.com/v1"
     assert classifier._model == "nvidia-model"
+    assert classifier._timeout == 120.0
     assert classifier._min_interval_seconds == 1.5
 
 
