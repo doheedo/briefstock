@@ -1,0 +1,36 @@
+name: Deploy to Oracle server
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_PORT: ${{ secrets.ORACLE_PORT }}
+      PROJECT_DIR: /opt/briefstock
+    steps:
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/oracle.key
+          chmod 600 ~/.ssh/oracle.key
+          ssh-keyscan -p "${ORACLE_PORT:-22}" -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/oracle.key -p "${ORACLE_PORT:-22}" "$ORACLE_USER@$ORACLE_HOST" \
+            "set -euo pipefail
+             cd '$PROJECT_DIR'
+             git pull --ff-only
+             .venv/bin/python -m pip install -e .
+             sudo cp deploy/oracle/daily-stock-briefing.service /etc/systemd/system/
+             sudo cp deploy/oracle/daily-stock-briefing.timer /etc/systemd/system/
+             sudo systemctl daemon-reload
+             sudo systemctl enable --now daily-stock-briefing.timer"

@@ -7,4 +7,4 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=/opt/briefstock
 EnvironmentFile=/opt/briefstock/.env
-ExecStart=/opt/briefstock/deploy/oracle/run_daily_briefing.sh
+ExecStart=/usr/bin/env bash /opt/briefstock/deploy/oracle/run_daily_briefing.sh

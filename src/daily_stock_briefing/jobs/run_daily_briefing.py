@@ -2,7 +2,9 @@ import argparse
 import logging
 import os
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
+import sys
 
 from dotenv import load_dotenv
 
@@ -25,6 +27,43 @@ from daily_stock_briefing.services.yellowbrick_enrichment import enrich_symbol_w
 
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def configure_logging(
+    *,
+    log_file: Path = Path("logs/briefstock.log"),
+    level: int = logging.INFO,
+    max_bytes: int = 10_485_760,
+    backup_count: int = 5,
+) -> None:
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+
+    if not any(getattr(handler, "_briefstock_console", False) for handler in root_logger.handlers):
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        console_handler._briefstock_console = True
+        root_logger.addHandler(console_handler)
+
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    target = str(log_file.resolve())
+    if not any(
+        isinstance(handler, RotatingFileHandler)
+        and getattr(handler, "baseFilename", None) == target
+        for handler in root_logger.handlers
+    ):
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=max_bytes,
+            backupCount=backup_count,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
 
 
 def _project_root() -> Path:
@@ -133,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--skip-telegram", action="store_true")
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    configure_logging()
     _load_environment()
     watchlist = load_watchlist(Path(args.watchlist))
     if args.group:

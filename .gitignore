@@ -8,6 +8,7 @@ reports/json/*.json
 reports/html/*.html
 reports/charts/
 !reports/html/sample-2026-04-24.html
+logs/
 dist/
 build/
 *.egg-info/
