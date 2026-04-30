@@ -1,185 +1,179 @@
 # Briefstock
 
-Briefstock은 사용자가 설정한 관심 종목(Watchlist)에 대한 일일 주식 브리핑을 제공하는 자동화 파이프라인입니다. 
+Briefstock은 매일 아침 관심 종목 요약을 텔레그램으로 보내주는 자동 브리핑 도구입니다.
 
-이 파이프라인은 매일 주가 스냅샷, 뉴스, SEC/DART 공시 자료를 수집하고 기업 이벤트를 분류하여 JSON 및 HTML 형태의 리포트를 작성합니다. 최종적으로 작성된 리포트는 요약된 텍스트와 함께 텔레그램(Telegram) 메시지로 발송됩니다.
+- 입력: 관심 종목 목록(`config/watchlist.yaml`)
+- 수집: 가격, 뉴스, 공시(SEC/DART), 보조 정보
+- 출력: 텔레그램 메시지 + HTML 리포트 첨부
 
-주가 데이터 레이어는 단순 현재가 외에도 5일(5D), 1개월(1M), 1년(1Y) 수익률과 벤치마크 대비 상대 수익률, RSI(14) 지표를 추적합니다. 또한 구글 이미지 검색 크롤링에 의존하지 않고, `yfinance` 데이터와 `matplotlib`을 사용하여 1년 주가 추이 PNG 차트를 직접 생성합니다.
+---
 
-## ⚙️ 설정 및 설치 (Setup)
+## 이 프로젝트로 할 수 있는 것
 
-가상환경을 생성하고 의존성 패키지를 설치합니다.
+- 매일 1번 자동으로 브리프 받기
+- 종목별 1년 차트와 핵심 이벤트를 한 파일(HTML)로 보기
+- LLM 요약을 켜거나 끄기
+- GitHub Actions로 운영(권장), 서버 수동 실행도 가능
+
+---
+
+## 5분 시작 가이드 (Windows)
+
+### 1) 설치
 
 ```bash
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .[dev]
 ```
 
-`.env.example` 파일을 복사하여 `.env` 파일을 생성한 뒤, 사용하고자 하는 프로바이더의 API 키만 채워 넣습니다.
+### 2) 환경 변수 파일 만들기
 
-## 📝 관심 종목 설정 (Configuration)
-
-`config/watchlist.yaml` 파일을 수정하여 브리핑을 받을 종목을 설정합니다.
-
-각 항목별 필수 필드는 다음과 같습니다:
-* `ticker` (티커)
-* `name` (기업명)
-* `market` (시장)
-* `thesis` (투자 아이디어)
-* `keywords` (관련 키워드)
-* `source_priority` (출처 우선순위)
-
-선택적 필드: `group`, `aliases`, `exclude_keywords`, `thesis_questions`, `red_flags`, `positive_signals`, `min_keyword_matches`
-
-## 💻 로컬 실행 (Local Run)
-
-아래 명령어를 통해 로컬 환경에서 파이프라인을 실행할 수 있습니다.
-
-```bash
-.\.venv\Scripts\python.exe -m daily_stock_briefing.jobs.run_daily_briefing --date 2026-04-25 --skip-telegram
-```
-
-그룹 인자를 지정하여 실행할 수도 있습니다 (통합 발송 모드에서는 무시됨):
-
-```bash
-.\.venv\Scripts\python.exe -m daily_stock_briefing.jobs.run_daily_briefing --date 2026-04-25 --group data_info --skip-telegram
-```
-
-**출력물 (Outputs):**
-* `reports/html/YYYY-MM-DD.html`
-* `reports/json/YYYY-MM-DD.json`
-* `reports/charts/YYYY-MM-DD/{ticker}.png`
-
-> 참고: 하위 호환성을 위해 `--group` 인자를 지원하지만, 현재 파이프라인은 실행 시마다 단일 통합 결과물만 출력하도록 설계되어 있어 실제 동작에서는 무시됩니다.
-
-## 📊 리포트 구성 (Reports)
-
-HTML 리포트에는 관심 종목 전체 슬라이스와 각 종목별 1년 차트가 포함됩니다. 텔레그램의 `sendDocument` 기능을 통해 독립적인 리포트가 전송될 수 있도록 차트 이미지는 Base64 데이터 URI 형태로 HTML 파일 내에 직접 임베딩됩니다. 텔레그램 메시지 본문은 수치 요약 위주로 간략하게 유지되며, 개별 차트 이미지를 일일이 보내는 대신 HTML 리포트 파일을 첨부하여 발송합니다.
-
-**가격 섹션 포함 내역:**
-* 현재가 및 1일 변동률
-* 5D, 1M, 1Y 수익률
-* 벤치마크 1년 수익률 (해외 티커: `^GSPC`, 국내 티커: `^KS200` 적용)
-* 선택된 벤치마크 대비 1년 상대 수익률
-* RSI(14)
-
-지분 변동 공시(Form 3, 4, 5, 144 등)는 기본적으로 간략하게 처리됩니다. 리포트는 관련 뉴스를 주요 요약 출처로 취급하며, 관련 뉴스가 없는 경우에 한해 공시 원문을 펼쳐 보여주지 않고 낮은 우선순위의 내부자/지분 공시로 표시합니다.
-
-## 📱 텔레그램 연동 (Telegram)
-
-BotFather를 통해 봇을 생성하고, 봇에게 메시지를 보내 Chat ID를 확인합니다. `.env` 파일에 다음을 설정합니다:
+- `.env.example`를 복사해서 `.env`를 만듭니다.
+- 먼저 아래 2개만 넣으면 텔레그램 발송 테스트가 가능합니다.
 
 ```env
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-테스트 메시지 발송:
+### 3) 관심 종목 설정
+
+`config/watchlist.yaml`에서 종목을 설정합니다.  
+필수 값은 아래 6개입니다.
+
+- `ticker`: 티커 (예: AAPL)
+- `name`: 회사명
+- `market`: 시장 (예: US, KR)
+- `thesis`: 투자 메모
+- `keywords`: 뉴스 매칭 키워드 목록
+- `source_priority`: 우선 수집 순서
+
+### 4) 한 번 실행해보기
+
+```bash
+.\.venv\Scripts\python.exe -m daily_stock_briefing.jobs.run_daily_briefing --date 2026-04-30 --skip-telegram
+```
+
+### 5) 생성 파일 확인
+
+- `reports/html/YYYY-MM-DD.html`
+- `reports/json/YYYY-MM-DD.json`
+- `reports/charts/YYYY-MM-DD/{ticker}.png`
+
+---
+
+## 텔레그램 연결
+
+1. BotFather에서 봇을 만듭니다.
+2. 봇에게 메시지를 1회 보냅니다.
+3. Chat ID를 확인해 `.env`에 넣습니다.
+
+테스트 메시지:
 
 ```bash
 .\.venv\Scripts\python.exe scripts\send_telegram_test.py
 ```
 
-텔레그램 메시지는 `parse_mode=HTML`을 사용하며, 텔레그램에서 지원하는 제한된 태그만 활용합니다.
+---
 
-## 🔑 프로바이더 환경 변수 (Provider Environment)
+## 환경 변수 쉽게 설명
+
+아래는 자주 쓰는 항목만 먼저 이해하면 됩니다.
 
 ```env
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
 NEWS_API_BASE_URL=
 NEWS_API_KEY=
 SEC_USER_AGENT=DailyStockBriefing/0.1 contact@example.com
 DART_API_KEY=
 LLM_PROVIDER=auto
-LLM_MODEL=llama-3.1-8b-instant
-LLM_RPM_LIMIT=
 GROQ_API_KEY=
 NVIDIA_API_KEY=
 NVIDIA_LLM_MODEL=deepseek-ai/deepseek-v4-pro
-LLM_API_BASE_URL=
-LLM_API_KEY=
 ```
 
-* SEC 데이터는 API 키 없이 사용할 수 있으나, 책임 있는 `SEC_USER_AGENT` 설정이 필수적입니다.
-* DART 실시간 호출을 위해서는 `DART_API_KEY`가 필요합니다.
-* LLM 요약은 선택 기능이며, 키를 넣은 경우에만 동작합니다.
+### LLM 선택 순서 (중요)
 
-### LLM 선택 순서 (비개발자용 요약)
+`LLM_PROVIDER=auto`일 때:
 
-`LLM_PROVIDER=auto`일 때는 아래 순서로 자동 선택됩니다.
-
-1. `NVIDIA_API_KEY`가 있으면 **NVIDIA를 최우선**으로 사용
+1. `NVIDIA_API_KEY`가 있으면 **NVIDIA 우선 사용**
 2. NVIDIA 키가 없고 `GROQ_API_KEY`가 있으면 Groq 사용
-3. 둘 다 없으면(`LLM_PROVIDER=none` 포함) LLM 없이 기본 텍스트 요약 사용
+3. 둘 다 없으면 LLM 없이 기본 요약 문구 사용
 
-즉, 지금 기본 정책은 **NVIDIA 우선**입니다.
+즉, 현재 기본 동작은 **NVIDIA 우선**입니다.
 
-### 자주 쓰는 설정 예시
+### 추천 세팅
 
-* NVIDIA만 쓰고 싶을 때
-  * `LLM_PROVIDER=auto`
-  * `NVIDIA_API_KEY` 설정
-  * `NVIDIA_LLM_MODEL` 설정(기본: `deepseek-ai/deepseek-v4-pro`)
-* Groq만 쓰고 싶을 때
-  * `LLM_PROVIDER=auto`
-  * `NVIDIA_API_KEY`는 비워두고 `GROQ_API_KEY`만 설정
-* LLM을 완전히 끄고 싶을 때
-  * `LLM_PROVIDER=none`
+- NVIDIA만 사용: `NVIDIA_API_KEY`만 넣기 (`LLM_PROVIDER=auto`)
+- Groq만 사용: `NVIDIA_API_KEY` 비우고 `GROQ_API_KEY`만 넣기
+- LLM 완전 비활성: `LLM_PROVIDER=none`
 
-## 🔄 GitHub Actions 자동화
+---
 
-워크플로우는 매일 `23:00 UTC` (한국 시간 `08:00 KST`)에 실행됩니다.
-매일 1회 실행되며 단일 통합 텔레그램 브리핑(메시지 + HTML 첨부)을 전송합니다.
+## 자동 실행 운영 (권장)
 
-**설정해야 할 Repository Secrets:**
-* `TELEGRAM_BOT_TOKEN`
-* `TELEGRAM_CHAT_ID`
-* `NEWS_API_BASE_URL`
-* `NEWS_API_KEY`
-* `SEC_USER_AGENT`
-* `DART_API_KEY`
-* `NVIDIA_API_KEY`
-* `NVIDIA_LLM_MODEL`
-* `GROQ_API_KEY`
-* `LLM_MODEL`
-* `LLM_RPM_LIMIT`
-* `LLM_API_BASE_URL`
-* `LLM_API_KEY`
+### GitHub Actions (권장 운영 방식)
 
-## ☁️ Oracle 서버 배포 (Oracle Server Deployment)
+- 매일 `23:00 UTC` = 한국 `08:00 KST` 자동 실행
+- 텔레그램 메시지 + HTML 첨부 발송
 
-Oracle 서버 배포는 선택 사항입니다. GitHub Actions와 systemd에서 동일한 Python 진입점을 사용합니다.
+필요한 GitHub Secrets:
 
-권장 서버 경로:
-```bash
-/opt/briefstock
-```
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `NEWS_API_BASE_URL`
+- `NEWS_API_KEY`
+- `SEC_USER_AGENT`
+- `DART_API_KEY`
+- `NVIDIA_API_KEY`
+- `NVIDIA_LLM_MODEL`
+- `GROQ_API_KEY`
 
-서버에 설치:
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -e .
-```
+---
 
-`/opt/briefstock/.env` 파일을 생성하고 동일하게 환경 변수를 설정한 뒤, 타이머를 등록합니다:
-```bash
-sudo cp deploy/oracle/daily-stock-briefing.service /etc/systemd/system/
-sudo cp deploy/oracle/daily-stock-briefing.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now daily-stock-briefing.timer
-```
+## Oracle 서버 사용 (선택)
 
-수동 서버 실행 방법:
+GitHub Actions만으로도 운영 가능합니다.  
+서버는 보조 운영/수동 실행 용도로만 쓰는 것을 권장합니다.
+
+서버 수동 실행:
+
 ```bash
 bash deploy/oracle/run_daily_briefing.sh
 ```
 
-## 🧪 테스트 (Tests)
+---
+
+## 리포트에 들어가는 내용
+
+- 종목별 현재가/등락률
+- 5일, 1개월, 1년 수익률
+- 벤치마크 대비 상대 수익률
+- RSI(14)
+- 핵심 뉴스/공시 기반 이벤트
+- 종목별 참고 링크(SEC/DART/Yellowbrick 등)
+
+참고: HTML은 텔레그램 전송 안정성을 위해 차트를 파일 내부(Base64)로 포함합니다.
+
+---
+
+## 문제 생겼을 때 빠른 점검
+
+1. `.env`의 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` 값 확인
+2. 로컬 테스트 실행:
+
+```bash
+.\.venv\Scripts\python.exe -m daily_stock_briefing.jobs.run_daily_briefing --date 2026-04-30 --skip-telegram
+```
+
+3. 로그 확인: `logs/briefstock.log`
+4. 결과 파일 확인: `reports/html/`, `reports/json/`
+
+---
+
+## 테스트 (개발용)
 
 ```bash
 .\.venv\Scripts\python.exe -m pytest tests -v
 ```
-
-## 🗺️ 로드맵 (Roadmap)
-
-* 일일 리포트 경로를 단순하게 유지하기 위해 이번 배치에서는 의도적으로 SQLite 상태 저장소를 구현하지 않았습니다. 향후 `price_snapshots`, `news_items`, `filing_items`, `company_events`, `provider_runs`, `daily_reports`, `follow_up_tasks` 등의 테이블이 추가될 예정입니다.
-* LLM 출력 스키마 역시 의도적으로 변경하지 않았습니다. 추후 자유 형식의 `thesis_summary` 및 `follow_up_questions` 형태에서 구조화된 중요도/신뢰도(Materiality/Confidence) 스키마로 발전시킬 계획입니다.
