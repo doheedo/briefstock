@@ -164,9 +164,6 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       <p class="muted">{{ briefing.yellowbrick_pitch.error }}</p>
       {% elif briefing.yellowbrick_pitch.summary_ko %}
       <p><strong>요약:</strong> {{ briefing.yellowbrick_pitch.summary_ko }}</p>
-      {% if briefing.yellowbrick_pitch.source_excerpt_en %}
-      <p class="muted"><strong>원문 추출 일부:</strong> {{ briefing.yellowbrick_pitch.source_excerpt_en[:500] }}{% if briefing.yellowbrick_pitch.source_excerpt_en|length > 500 %}...{% endif %}</p>
-      {% endif %}
       {% endif %}
       {% endif %}
     </section>

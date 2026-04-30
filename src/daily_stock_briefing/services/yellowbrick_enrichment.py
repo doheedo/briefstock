@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import re
+
+from rapidfuzz import fuzz
+
 from daily_stock_briefing.adapters.llm.openai_compatible import OpenAICompatibleLlmClassifier
 from daily_stock_briefing.adapters.yellowbrick.readability_extract import (
     extract_readable_text,
@@ -26,6 +30,29 @@ def _looks_like_subscription_placeholder(text: str) -> bool:
     return sum(1 for marker in markers if marker in normalized) >= 2
 
 
+def _candidate_match_text(
+    *,
+    read_more_url: str,
+    title: str | None,
+    teaser: str | None,
+) -> str:
+    parts = [title or "", teaser or "", read_more_url]
+    return " ".join(part for part in parts if part).strip()
+
+
+def _ticker_fuzzy_ratio(ticker_base: str, text: str) -> int:
+    normalized = re.sub(r"\s+", " ", text.upper()).strip()
+    if not ticker_base or not normalized:
+        return 0
+    base = ticker_base.upper()
+    best = int(fuzz.ratio(base, normalized))
+    for token in re.findall(r"[A-Z0-9.\-_$]+", normalized):
+        score = int(fuzz.ratio(base, token))
+        if score > best:
+            best = score
+    return best
+
+
 def enrich_symbol_with_yellowbrick(
     briefing: SymbolBriefing,
     llm: OpenAICompatibleLlmClassifier | None,
@@ -48,6 +75,25 @@ def enrich_symbol_with_yellowbrick(
                 "yellowbrick_pitch": section.model_copy(
                     update={
                         "summary_ko": "최근 30일 내 해당 티커의 Yellowbrick Read full article 항목이 없습니다.",
+                    }
+                )
+            }
+        )
+
+    match_text = _candidate_match_text(
+        read_more_url=candidate.read_more_url,
+        title=candidate.title,
+        teaser=candidate.teaser,
+    )
+    if _ticker_fuzzy_ratio(base, match_text) <= 70:
+        return briefing.model_copy(
+            update={
+                "yellowbrick_pitch": section.model_copy(
+                    update={
+                        "summary_ko": (
+                            "최근 30일 내 티커 유사도 기준(>70)을 통과한 "
+                            "Yellowbrick 글이 없습니다."
+                        )
                     }
                 )
             }
