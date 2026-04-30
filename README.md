@@ -68,6 +68,32 @@ TELEGRAM_CHAT_ID=
 2. 봇에게 메시지를 1회 보냅니다.
 3. Chat ID를 확인해 `.env`에 넣습니다.
 
+### BotFather 사용법 (처음 하는 분용)
+
+1. 텔레그램 앱에서 `@BotFather`를 검색해 채팅을 엽니다.
+2. `/newbot` 입력
+3. 안내에 따라
+   - 봇 표시 이름(예: `My Briefing Bot`)
+   - 봇 아이디(반드시 `bot`으로 끝남, 예: `my_briefing_alarm_bot`)
+     를 입력합니다.
+4. 생성이 끝나면 BotFather가 토큰을 줍니다. 이 값을 `.env`의 `TELEGRAM_BOT_TOKEN`에 넣습니다.
+
+### Chat ID 확인 방법
+
+가장 쉬운 방법:
+
+1. 방금 만든 봇과의 채팅방에 들어가서 아무 메시지나 1번 보냅니다(예: `hello`).
+2. 브라우저에서 아래 주소를 엽니다.  
+   `https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getUpdates`
+3. 응답 JSON에서 `chat` → `id` 값을 찾습니다.
+4. 이 숫자를 `.env`의 `TELEGRAM_CHAT_ID`에 넣습니다.
+
+예시:
+
+```text
+https://api.telegram.org/bot123456789:ABCDEF.../getUpdates
+```
+
 테스트 메시지:
 
 ```bash
