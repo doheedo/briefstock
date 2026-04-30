@@ -810,6 +810,65 @@ def test_http_news_provider_returns_empty_list_on_upstream_failures(
     assert news == []
 
 
+def test_http_news_provider_fetches_press_release_query_every_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = {
+        "articles": [
+            {
+                "title": "LendingClub press release",
+                "description": "guidance update",
+                "url": "https://example.com/pr",
+                "publishedAt": "2026-04-24T08:00:00Z",
+                "source": {"name": "Example News"},
+            }
+        ]
+    }
+    calls: list[dict] = []
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return payload
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self) -> "FakeClient":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def get(self, url: str, params: dict) -> FakeResponse:
+            calls.append(params)
+            return FakeResponse()
+
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.http_news_adapter.httpx.Client",
+        FakeClient,
+    )
+
+    provider = HttpNewsProvider("https://api.example.com/news", "token")
+    item = WatchlistItem(
+        ticker="LC",
+        name="LendingClub",
+        market="NASDAQ",
+        thesis="Test thesis",
+        keywords=["guidance"],
+    )
+
+    news = provider.fetch_news(item)
+
+    assert len(calls) == 2
+    assert any("press release" in str(call.get("q", "")).lower() for call in calls)
+    assert len(news) == 1
+    assert news[0].title == "LendingClub press release"
+
+
 def test_yfinance_price_provider_uses_metadata_currency(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeSeries:
         def __init__(self, values: list[float]) -> None:

@@ -14,6 +14,7 @@ from daily_stock_briefing.adapters.filings.sec_adapter import (
     SecFilingProvider,
     normalize_sec_filing,
 )
+from daily_stock_briefing.adapters.filings.sedar_plus_adapter import SedarPlusFilingProvider
 from daily_stock_briefing.domain.models import FilingItem, WatchlistItem
 from daily_stock_briefing.jobs.run_daily_briefing import _build_llm_classifier
 
@@ -398,6 +399,42 @@ def test_build_llm_classifier_uses_nvidia_default_model_in_auto(
     assert classifier is not None
     assert classifier._base_url == "https://integrate.api.nvidia.com/v1"
     assert classifier._model == "deepseek-ai/deepseek-v4-pro"
+
+
+def test_fetch_filings_routes_canadian_issuers_to_sedar_plus() -> None:
+    from daily_stock_briefing.jobs.run_daily_briefing import _fetch_filings
+
+    class _SedarProvider(SedarPlusFilingProvider):
+        def fetch_filings(self, item: WatchlistItem) -> list[FilingItem]:
+            return [
+                FilingItem(
+                    id="sedar-1",
+                    ticker=item.ticker,
+                    filing_type="SEDAR+ profile",
+                    title="SEDAR profile",
+                    filed_at=datetime(2026, 4, 24, tzinfo=timezone.utc),
+                    filing_url="https://sedarplus.ca/",
+                    source_system="SEDAR+",
+                    raw_excerpt="ok",
+                )
+            ]
+
+    class _SecProvider(SecFilingProvider):
+        def __init__(self) -> None:
+            pass
+
+        def fetch_filings(self, item: WatchlistItem) -> list[FilingItem]:
+            raise AssertionError("SEC provider must not be called for CA issuers")
+
+    item = _make_watchlist_item("CSU.TO", market="CA")
+    filings = _fetch_filings(
+        item,
+        sec_provider=_SecProvider(),
+        sedar_provider=_SedarProvider(),
+    )
+
+    assert len(filings) == 1
+    assert filings[0].source_system == "SEDAR+"
 
 
 def test_main_writes_html_and_json_reports(tmp_path: Path, monkeypatch) -> None:

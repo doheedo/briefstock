@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from daily_stock_briefing.adapters.filings.dart_adapter import DartFilingProvider
 from daily_stock_briefing.adapters.filings.sec_adapter import SecFilingProvider
+from daily_stock_briefing.adapters.filings.sedar_plus_adapter import SedarPlusFilingProvider
 from daily_stock_briefing.adapters.llm.openai_compatible import (
     OpenAICompatibleLlmClassifier,
 )
@@ -100,6 +101,7 @@ def _fetch_filings(
     *,
     dart_provider: DartFilingProvider | None = None,
     sec_provider: SecFilingProvider | None = None,
+    sedar_provider: SedarPlusFilingProvider | None = None,
 ) -> list[FilingItem]:
     if item.market.upper().startswith("KR"):
         # dart_provider must be pre-constructed by the caller so that
@@ -109,7 +111,11 @@ def _fetch_filings(
         if dart_provider is None:
             return []
         return dart_provider.fetch_filings(item)
-    if item.market.upper() in {"US", "USA", "CA", "CANADA"}:
+    if item.market.upper() in {"CA", "CANADA"}:
+        if sedar_provider is None:
+            sedar_provider = SedarPlusFilingProvider()
+        return sedar_provider.fetch_filings(item)
+    if item.market.upper() in {"US", "USA"}:
         if sec_provider is None:
             user_agent = os.getenv("SEC_USER_AGENT") or (
                 "DailyStockBriefing/0.1 contact@example.com"
@@ -189,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         user_agent=os.getenv("SEC_USER_AGENT")
         or "DailyStockBriefing/0.1 contact@example.com"
     )
+    sedar_provider = SedarPlusFilingProvider()
 
     briefings = []
     warnings: list[str] = []
@@ -235,6 +242,7 @@ def main(argv: list[str] | None = None) -> int:
                 item,
                 dart_provider=dart_provider,
                 sec_provider=sec_provider,
+                sedar_provider=sedar_provider,
             )
         except Exception as exc:  # pragma: no cover - defensive job boundary
             warnings.append(f"{item.ticker}: filings unavailable ({exc})")
