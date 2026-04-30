@@ -94,17 +94,36 @@ LLM_MODEL=llama-3.1-8b-instant
 LLM_RPM_LIMIT=
 GROQ_API_KEY=
 NVIDIA_API_KEY=
-NVIDIA_LLM_MODEL=
+NVIDIA_LLM_MODEL=deepseek-ai/deepseek-v4-pro
 LLM_API_BASE_URL=
 LLM_API_KEY=
 ```
 
 * SEC 데이터는 API 키 없이 사용할 수 있으나, 책임 있는 `SEC_USER_AGENT` 설정이 필수적입니다.
 * DART 실시간 호출을 위해서는 `DART_API_KEY`가 필요합니다.
-* LLM을 통한 요약 및 강화(Enrichment)는 선택 사항이나, 인증 정보가 있을 경우 활성화됩니다.
-  * `LLM_PROVIDER=auto`로 설정 시, `GROQ_API_KEY`가 존재하면 Groq을 우선 사용합니다 (기본 30 RPM 제한).
-  * Groq 키가 없고 `NVIDIA_API_KEY`와 모델명이 설정되어 있으면 NVIDIA의 OpenAI 호환 엔드포인트를 사용합니다 (기본 40 RPM 제한).
-  * `LLM_API_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`을 설정하여 범용 OpenAI 호환 엔드포인트를 사용할 수도 있습니다.
+* LLM 요약은 선택 기능이며, 키를 넣은 경우에만 동작합니다.
+
+### LLM 선택 순서 (비개발자용 요약)
+
+`LLM_PROVIDER=auto`일 때는 아래 순서로 자동 선택됩니다.
+
+1. `NVIDIA_API_KEY`가 있으면 **NVIDIA를 최우선**으로 사용
+2. NVIDIA 키가 없고 `GROQ_API_KEY`가 있으면 Groq 사용
+3. 둘 다 없으면(`LLM_PROVIDER=none` 포함) LLM 없이 기본 텍스트 요약 사용
+
+즉, 지금 기본 정책은 **NVIDIA 우선**입니다.
+
+### 자주 쓰는 설정 예시
+
+* NVIDIA만 쓰고 싶을 때
+  * `LLM_PROVIDER=auto`
+  * `NVIDIA_API_KEY` 설정
+  * `NVIDIA_LLM_MODEL` 설정(기본: `deepseek-ai/deepseek-v4-pro`)
+* Groq만 쓰고 싶을 때
+  * `LLM_PROVIDER=auto`
+  * `NVIDIA_API_KEY`는 비워두고 `GROQ_API_KEY`만 설정
+* LLM을 완전히 끄고 싶을 때
+  * `LLM_PROVIDER=none`
 
 ## 🔄 GitHub Actions 자동화
 
@@ -118,11 +137,11 @@ LLM_API_KEY=
 * `NEWS_API_KEY`
 * `SEC_USER_AGENT`
 * `DART_API_KEY`
+* `NVIDIA_API_KEY`
+* `NVIDIA_LLM_MODEL`
 * `GROQ_API_KEY`
 * `LLM_MODEL`
 * `LLM_RPM_LIMIT`
-* `NVIDIA_API_KEY`
-* `NVIDIA_LLM_MODEL`
 * `LLM_API_BASE_URL`
 * `LLM_API_KEY`
 
