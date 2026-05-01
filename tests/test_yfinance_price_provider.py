@@ -1,5 +1,6 @@
 import math
 
+import pandas as pd
 import pytest
 
 from daily_stock_briefing.adapters.prices.yfinance_adapter import YFinancePriceProvider
@@ -120,3 +121,52 @@ def test_yfinance_provider_returns_none_when_recent_data_is_invalid(
     )
 
     assert YFinancePriceProvider().fetch_daily_snapshot("LC") is None
+
+
+def test_yfinance_provider_falls_back_to_download_when_ticker_history_is_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    closes = [2.0 + (index * 0.01) for index in range(252)]
+    benchmark_closes = [4000.0 + index for index in range(252)]
+    downloads: list[str] = []
+
+    class _FakeTicker:
+        info = {"currency": "EUR"}
+
+        def __init__(self, ticker: str) -> None:
+            self.ticker = ticker
+
+        def history(self, period: str, interval: str):
+            return _FakeHistory([])
+
+    def _fake_download(
+        ticker: str,
+        period: str,
+        interval: str,
+        progress: bool,
+        auto_adjust: bool,
+        threads: bool,
+    ):
+        downloads.append(ticker)
+        assert period == "1y"
+        assert interval == "1d"
+        values = benchmark_closes if ticker == "^GSPC" else closes
+        columns = pd.MultiIndex.from_tuples([("Close", ticker)])
+        return pd.DataFrame(values, columns=columns)
+
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.prices.yfinance_adapter.yf.Ticker",
+        _FakeTicker,
+    )
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.prices.yfinance_adapter.yf.download",
+        _fake_download,
+    )
+
+    snapshot = YFinancePriceProvider().fetch_daily_snapshot("BFF.MI")
+
+    assert snapshot is not None
+    assert snapshot.close == pytest.approx(closes[-1])
+    assert snapshot.currency == "EUR"
+    assert snapshot.return_1y_pct is not None
+    assert downloads == ["BFF.MI", "^GSPC"]

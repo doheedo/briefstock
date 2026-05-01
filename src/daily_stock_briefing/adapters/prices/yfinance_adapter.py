@@ -30,11 +30,13 @@ class YFinancePriceProvider(PriceProvider):
         benchmark = benchmark_ticker or self._benchmark_ticker
         try:
             ticker_data = yf.Ticker(ticker)
-            history = ticker_data.history(period="1y", interval="1d")
         except Exception:
             return None
+        history = _fetch_history(ticker_data, ticker)
+        if history is None:
+            return None
 
-        raw_closes = _series_to_values(history.get("Close"))
+        raw_closes = _close_values(history, ticker)
         if len(raw_closes) < 2:
             return None
 
@@ -102,14 +104,16 @@ class YFinancePriceProvider(PriceProvider):
         if benchmark_ticker not in self._benchmark_history_cache:
             try:
                 benchmark_data = yf.Ticker(benchmark_ticker)
-                history = benchmark_data.history(period="1y", interval="1d")
             except Exception:
+                benchmark_data = None
+            history = _fetch_history(benchmark_data, benchmark_ticker)
+            if history is None:
                 self._benchmark_history_cache[benchmark_ticker] = CloseHistory(
                     closes=[]
                 )
             else:
                 self._benchmark_history_cache[benchmark_ticker] = CloseHistory(
-                    closes=_finite_closes(_series_to_values(history.get("Close")))
+                    closes=_finite_closes(_close_values(history, benchmark_ticker))
                 )
         benchmark_history = self._benchmark_history_cache[benchmark_ticker]
         if len(benchmark_history.closes) < 2:
@@ -118,6 +122,50 @@ class YFinancePriceProvider(PriceProvider):
             benchmark_history.closes,
             len(benchmark_history.closes) - 1,
         )
+
+
+def _fetch_history(ticker_data: object, ticker: str) -> object | None:
+    try:
+        history = ticker_data.history(period="1y", interval="1d")  # type: ignore[attr-defined]
+    except Exception:
+        history = None
+    if len(_close_values(history, ticker)) >= 2:
+        return history
+    try:
+        return yf.download(
+            ticker,
+            period="1y",
+            interval="1d",
+            progress=False,
+            auto_adjust=False,
+            threads=False,
+        )
+    except Exception:
+        return None
+
+
+def _close_values(history: object, ticker: str) -> list[object]:
+    if history is None:
+        return []
+    get = getattr(history, "get", None)
+    close_series = get("Close") if callable(get) else None
+    if close_series is None:
+        return []
+    return _series_to_values(_pick_close_series(close_series, ticker))
+
+
+def _pick_close_series(close_series: object, ticker: str) -> object:
+    columns = getattr(close_series, "columns", None)
+    if columns is None:
+        return close_series
+    try:
+        if ticker in columns:
+            return close_series[ticker]  # type: ignore[index]
+        if len(columns) > 0:
+            return close_series[columns[0]]  # type: ignore[index]
+    except Exception:
+        return close_series
+    return close_series
 
 
 def _coerce_close(value: object) -> float | None:

@@ -55,13 +55,6 @@ watchlist:
     thesis: Westlaw, 법률 데이터, AI 계약 관련 이벤트 추적
     keywords: [Thomson Reuters, Westlaw, legal AI, contract]
     source_priority: [news, filings, price]
-  - ticker: RLX
-    name: RLX Technology
-    market: US
-    group: fintech_platform
-    thesis: 전자담배 RELX 이슈 추적, RELX plc와 혼동 방지
-    keywords: [RLX Technology, vaping, e-cigarette, China]
-    source_priority: [news, filings, price]
   - ticker: HEPS
     name: Hepsiburada
     market: US
