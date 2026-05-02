@@ -26,6 +26,19 @@ def _briefing() -> SymbolBriefing:
     )
 
 
+class _FakeYellowbrickLlm:
+    def __init__(self, summary: str | None) -> None:
+        self.summary = summary
+
+    def summarize_yellowbrick_pitch(
+        self,
+        english_text: str,
+        *,
+        title: str | None = None,
+    ) -> str | None:
+        return self.summary
+
+
 @patch(
     "daily_stock_briefing.services.yellowbrick_enrichment.find_recent_read_more_candidate",
     return_value=None,
@@ -55,7 +68,8 @@ def test_enrich_uses_read_more_body(mock_extract: object, mock_fetch: object) ->
     assert out.yellowbrick_pitch.article_url == "https://example.com/read-more"
     assert out.yellowbrick_pitch.pitch_date == "2026-04-01"
     assert out.yellowbrick_pitch.summary_ko is not None
-    assert "extracted article body" in out.yellowbrick_pitch.summary_ko
+    assert "한국어 요약 생성에 실패" in out.yellowbrick_pitch.summary_ko
+    assert "extracted article body" not in out.yellowbrick_pitch.summary_ko
 
 
 @patch(
@@ -78,7 +92,8 @@ def test_enrich_uses_yellowbrick_teaser_when_article_extract_fails(
     out = enrich_symbol_with_yellowbrick(_briefing(), None)
     assert out.yellowbrick_pitch is not None
     assert out.yellowbrick_pitch.summary_ko is not None
-    assert "growth + margin expansion" in out.yellowbrick_pitch.summary_ko
+    assert "한국어 요약 생성에 실패" in out.yellowbrick_pitch.summary_ko
+    assert "growth + margin expansion" not in out.yellowbrick_pitch.summary_ko
     assert out.yellowbrick_pitch.source_excerpt_en is not None
     assert "ZZTEST deep dive" in out.yellowbrick_pitch.source_excerpt_en
 
@@ -106,8 +121,60 @@ def test_enrich_uses_yellowbrick_teaser_for_subscription_placeholder(
     out = enrich_symbol_with_yellowbrick(_briefing(), None)
     assert out.yellowbrick_pitch is not None
     assert out.yellowbrick_pitch.summary_ko is not None
-    assert "growth + margin expansion" in out.yellowbrick_pitch.summary_ko
+    assert "한국어 요약 생성에 실패" in out.yellowbrick_pitch.summary_ko
     assert "paid subscribers" not in out.yellowbrick_pitch.summary_ko
+
+
+@patch(
+    "daily_stock_briefing.services.yellowbrick_enrichment.find_recent_read_more_candidate",
+    return_value=YellowbrickArticleCandidate(
+        read_more_url="https://example.com/read-more",
+        pitch_date="2026-04-22",
+        title="Deep Dive: ZZTEST",
+        teaser="ZZTEST deep dive: growth + margin expansion.",
+    ),
+)
+@patch(
+    "daily_stock_briefing.services.yellowbrick_enrichment.extract_readable_text",
+    return_value="ZZTEST has growth momentum and margin expansion.",
+)
+def test_enrich_rejects_english_llm_summary(
+    mock_extract: object,
+    mock_fetch: object,
+) -> None:
+    out = enrich_symbol_with_yellowbrick(
+        _briefing(),
+        _FakeYellowbrickLlm("ZZTEST has growth momentum and margin expansion."),
+    )
+    assert out.yellowbrick_pitch is not None
+    assert out.yellowbrick_pitch.summary_ko is not None
+    assert "한국어 요약 생성에 실패" in out.yellowbrick_pitch.summary_ko
+    assert "growth momentum" not in out.yellowbrick_pitch.summary_ko
+
+
+@patch(
+    "daily_stock_briefing.services.yellowbrick_enrichment.find_recent_read_more_candidate",
+    return_value=YellowbrickArticleCandidate(
+        read_more_url="https://example.com/read-more",
+        pitch_date="2026-04-22",
+        title="Deep Dive: ZZTEST",
+        teaser="ZZTEST deep dive: growth + margin expansion.",
+    ),
+)
+@patch(
+    "daily_stock_briefing.services.yellowbrick_enrichment.extract_readable_text",
+    return_value="ZZTEST has growth momentum and margin expansion.",
+)
+def test_enrich_accepts_korean_llm_summary(
+    mock_extract: object,
+    mock_fetch: object,
+) -> None:
+    out = enrich_symbol_with_yellowbrick(
+        _briefing(),
+        _FakeYellowbrickLlm("ZZTEST는 성장 모멘텀과 마진 확대가 핵심입니다."),
+    )
+    assert out.yellowbrick_pitch is not None
+    assert out.yellowbrick_pitch.summary_ko == "ZZTEST는 성장 모멘텀과 마진 확대가 핵심입니다."
 
 
 @patch(

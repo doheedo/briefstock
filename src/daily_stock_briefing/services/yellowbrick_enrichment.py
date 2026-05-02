@@ -30,6 +30,19 @@ def _looks_like_subscription_placeholder(text: str) -> bool:
     return sum(1 for marker in markers if marker in normalized) >= 2
 
 
+def _contains_korean(text: str) -> bool:
+    return bool(re.search(r"[가-힣]", text))
+
+
+def _korean_summary_unavailable_message(*, has_source_text: bool) -> str:
+    if has_source_text:
+        return (
+            "Yellowbrick 원문은 찾았지만 한국어 요약 생성에 실패했습니다. "
+            "원문 링크를 확인하세요."
+        )
+    return "Read full article 본문 추출에 실패했습니다. 원문 링크를 확인하세요."
+
+
 def _candidate_match_text(
     *,
     read_more_url: str,
@@ -115,11 +128,13 @@ def enrich_symbol_with_yellowbrick(
             body_for_llm,
             title=candidate.title or briefing.watchlist_item.name,
         )
+        if summary_ko and not _contains_korean(summary_ko):
+            summary_ko = None
 
     if not summary_ko and body_for_llm:
-        summary_ko = body_for_llm[:800] + ("…" if len(body_for_llm) > 800 else "")
+        summary_ko = _korean_summary_unavailable_message(has_source_text=True)
     elif not summary_ko:
-        summary_ko = "Read full article 본문 추출에 실패했습니다. 원문 링크를 확인하세요."
+        summary_ko = _korean_summary_unavailable_message(has_source_text=False)
 
     section.summary_ko = summary_ko
     return briefing.model_copy(update={"yellowbrick_pitch": section})
