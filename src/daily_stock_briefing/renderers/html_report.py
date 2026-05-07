@@ -19,6 +19,21 @@ def _format_number(value: float | None) -> str:
     return "n/a" if value is None else f"{value:.1f}"
 
 
+def _wagn_change_label(ticker: str, report: DailyBriefingReport) -> str:
+    if report.wagn_holdings is None:
+        return ""
+    target = ticker.strip().upper()
+    for change in report.wagn_holdings.notable_changes:
+        if change.ticker.strip().upper() != target:
+            continue
+        if change.change_type == "added":
+            return "신규"
+        if change.change_type == "removed":
+            return "제외"
+        return _format_pct(change.delta_pct, suffix="%p")
+    return ""
+
+
 def _chart_src(chart_path: str | None, report_path: Path) -> str | None:
     if not chart_path:
         return None
@@ -46,6 +61,9 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
     .priority { font-weight: 700; }
     .muted { color: #666; }
     .metrics { line-height: 1.6; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; border-bottom: 1px solid #e5e5e5; padding: 6px 8px; vertical-align: top; }
+    th { background: #f7f7f9; }
     img.chart { width: 100%; max-width: 900px; height: auto; border: 1px solid #e5e5e5; border-radius: 8px; }
     .research-links { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
     .research-links a { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; text-decoration: none; background: #f0f0f5; color: #333; border: 1px solid #d0d0e0; }
@@ -72,27 +90,21 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       {% if report.wagn_holdings.error %}
       <p class="muted">{{ report.wagn_holdings.error }}</p>
       {% endif %}
-      {% if report.wagn_holdings.notable_changes %}
-      <h3>비중/구성 변화</h3>
-      {% for ch in report.wagn_holdings.notable_changes %}
-      <p>
-        <strong>{{ ch.ticker }}</strong> {{ ch.name }}:
-        {% if ch.change_type == "added" %}
-        신규 편입 (현재 {{ format_pct(ch.current_weight_pct) }})
-        {% elif ch.change_type == "removed" %}
-        제외 (이전 {{ format_pct(ch.previous_weight_pct) }})
-        {% else %}
-        {{ format_pct(ch.previous_weight_pct) }} → {{ format_pct(ch.current_weight_pct) }}
-        ({{ format_pct(ch.delta_pct, suffix="%p") }})
-        {% endif %}
-      </p>
-      {% endfor %}
-      {% endif %}
       {% if report.wagn_holdings.top_holdings %}
-      <h3>상위 보유 비중</h3>
-      {% for item in report.wagn_holdings.top_holdings[:10] %}
-      <p>{{ item.ticker }} {{ item.name }}: {{ format_pct(item.weight_pct) }}</p>
-      {% endfor %}
+      <h3>전체 보유 비중</h3>
+      <table>
+        <thead><tr><th>티커</th><th>종목</th><th>비중</th></tr></thead>
+        <tbody>
+        {% for item in report.wagn_holdings.top_holdings %}
+        {% set change_label = wagn_change_label(item.ticker) %}
+        <tr>
+          <td>{{ item.ticker }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ format_pct(item.weight_pct) }}{% if change_label %} ({{ change_label }}){% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
       {% endif %}
     </section>
     {% endif %}
@@ -103,14 +115,7 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       {% if briefing.price_snapshot %}
       <p>가격: {{ "%.2f"|format(briefing.price_snapshot.close) }} {{ briefing.price_snapshot.currency }}
         ({{ "%+.1f"|format(briefing.price_snapshot.change_pct) }}%)</p>
-      <p class="metrics">
-        5D: {{ format_pct(briefing.price_snapshot.return_5d_pct) }} /
-        1M: {{ format_pct(briefing.price_snapshot.return_1m_pct) }} /
-        1Y: {{ format_pct(briefing.price_snapshot.return_1y_pct) }}<br>
-        {{ benchmark_label(briefing.price_snapshot) }} 1Y: {{ format_pct(briefing.price_snapshot.benchmark_return_1y_pct) }} /
-        Relative: {{ format_pct(briefing.price_snapshot.relative_return_1y_pct, suffix="%p") }}<br>
-        RSI(14): {{ format_number(briefing.price_snapshot.rsi_14) }}
-      </p>
+      <p class="metrics">5D: {{ format_pct(briefing.price_snapshot.return_5d_pct) }} / 1M: {{ format_pct(briefing.price_snapshot.return_1m_pct) }} / 1Y: {{ format_pct(briefing.price_snapshot.return_1y_pct) }} / {{ benchmark_label(briefing.price_snapshot) }} 1Y: {{ format_pct(briefing.price_snapshot.benchmark_return_1y_pct) }} / Relative: {{ format_pct(briefing.price_snapshot.relative_return_1y_pct, suffix="%p") }} / RSI(14): {{ format_number(briefing.price_snapshot.rsi_14) }}</p>
       {% set chart_data_src = chart_src(briefing.price_snapshot.chart_path) %}
       {% if chart_data_src %}
       <p><img class="chart" src="{{ chart_data_src }}" alt="{{ briefing.watchlist_item.ticker }} 1년 가격 및 RSI 차트"></p>
@@ -122,15 +127,15 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       {% if briefing.derived_events %}
       <h3>회사 이벤트</h3>
       {% for event in briefing.derived_events %}
-      <p><strong>{{ event.category.value }}</strong> / score {{ event.importance_score }} / {{ event.thesis_impact.value }}<br>
-      {{ event.summary }}</p>
+      <p><strong>{{ event.category.value }}</strong> / score {{ event.importance_score }} / {{ event.thesis_impact.value }}: {{ event.summary }}
       {% if event.source_refs %}
-      <p class="muted">출처:
+      <span class="muted">출처:
       {% for url in event.source_refs %}
         <a href="{{ url }}">{{ loop.index }}</a>
       {% endfor %}
-      </p>
+      </span>
       {% endif %}
+      </p>
       {% endfor %}
       {% endif %}
       {% if briefing.follow_up_questions %}
@@ -183,6 +188,7 @@ def write_html_report(report: DailyBriefingReport, path: Path) -> Path:
             format_pct=_format_pct,
             format_number=_format_number,
             priority_label=_priority_label,
+            wagn_change_label=lambda ticker: _wagn_change_label(ticker, report),
             chart_src=lambda chart_path: _chart_src(chart_path, path),
             benchmark_label=lambda ps: benchmark_display_name(ps.benchmark_ticker)
             if ps

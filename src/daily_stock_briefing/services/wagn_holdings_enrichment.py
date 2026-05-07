@@ -155,7 +155,7 @@ def build_wagn_holdings_section(
         source_url=WAGN_SOURCE_URL,
         download_url=WAGN_HOLDINGS_CSV_URL,
         total_holdings=len(current),
-        top_holdings=current[:10],
+        top_holdings=current,
         notable_changes=changes,
         summary_ko=_summary_ko(changes, as_of),
     )

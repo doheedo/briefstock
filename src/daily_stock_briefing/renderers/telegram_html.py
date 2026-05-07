@@ -32,16 +32,16 @@ def _format_metrics(briefing: SymbolBriefing) -> str:
     bench = escape(benchmark_display_name(price.benchmark_ticker if price else None))
     if price is None:
         return (
-            "\n• 5D: n/a / 1M: n/a / 1Y: n/a\n"
-            f"• {bench} 1Y: n/a / Relative: n/a\n• RSI(14): n/a"
+            "\n• 5D: n/a / 1M: n/a / 1Y: n/a / "
+            f"{bench} 1Y: n/a / Relative: n/a / RSI(14): n/a"
         )
     return (
         f"\n• 5D: {_format_pct(price.return_5d_pct)} / "
         f"1M: {_format_pct(price.return_1m_pct)} / "
-        f"1Y: {_format_pct(price.return_1y_pct)}"
-        f"\n• {bench} 1Y: {_format_pct(price.benchmark_return_1y_pct)} / "
-        f"Relative: {_format_pct(price.relative_return_1y_pct, suffix='%p')}"
-        f"\n• RSI(14): {_format_number(price.rsi_14)}"
+        f"1Y: {_format_pct(price.return_1y_pct)} / "
+        f"{bench} 1Y: {_format_pct(price.benchmark_return_1y_pct)} / "
+        f"Relative: {_format_pct(price.relative_return_1y_pct, suffix='%p')} / "
+        f"RSI(14): {_format_number(price.rsi_14)}"
     )
 
 

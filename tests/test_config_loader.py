@@ -16,6 +16,18 @@ def test_load_watchlist_reads_required_fields() -> None:
     assert items[0].source_priority == ["filings", "news", "price"]
 
 
+def test_project_watchlist_includes_requested_us_and_india_adrs() -> None:
+    items = load_watchlist(Path("config/watchlist.yaml"))
+    by_ticker = {item.ticker: item for item in items}
+
+    assert by_ticker["Z"].name == "Zillow Group, Inc. Class C"
+    assert by_ticker["RBLX"].name == "Roblox Corporation"
+    assert by_ticker["HDB"].name == "HDFC Bank Limited ADR"
+    assert by_ticker["IBN"].name == "ICICI Bank Limited ADR"
+    assert by_ticker["HDB"].market == "US"
+    assert by_ticker["IBN"].market == "US"
+
+
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:
     path = tmp_path / "watchlist.yaml"
     path.write_text(

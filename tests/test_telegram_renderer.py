@@ -8,6 +8,9 @@ from daily_stock_briefing.domain.models import (
     PriceSnapshot,
     SymbolBriefing,
     WatchlistItem,
+    WagnHoldingChange,
+    WagnHoldingItem,
+    WagnHoldingsSection,
 )
 from daily_stock_briefing.renderers.html_report import write_html_report
 from daily_stock_briefing.renderers.telegram_html import (
@@ -66,9 +69,11 @@ def test_render_symbol_line_uses_only_supported_tags() -> None:
 
     assert "<b>SNOW</b>" in html
     assert "가격: 104.00 USD (+4.0%)" in html
-    assert "5D: -3.4% / 1M: +2.1% / 1Y: -18.4%" in html
-    assert "S&amp;P 500 1Y: +11.2% / Relative: -29.6%p" in html
-    assert "RSI(14): 37.8" in html
+    assert (
+        "5D: -3.4% / 1M: +2.1% / 1Y: -18.4% / "
+        "S&amp;P 500 1Y: +11.2% / Relative: -29.6%p / RSI(14): 37.8"
+    ) in html
+    assert "Relative: -29.6%p\n• RSI(14)" not in html
     assert '<a href="https://example.com/source?x=1&amp;y=2">1</a>' in html
     for unsupported in ("<ul>", "<li>", "<table>", "<style>", "<script>"):
         assert unsupported not in html
@@ -134,3 +139,43 @@ def test_write_html_report_creates_full_report(tmp_path) -> None:
     )
     assert f'src="{expected_chart_src}"' in output
     assert 'href="https://example.com/source?x=1&amp;y=2"' in output
+
+
+def test_write_html_report_compacts_metrics_events_and_wagn_table(tmp_path) -> None:
+    report = DailyBriefingReport(
+        run_date="2026-04-24",
+        market_summary="Minimal market summary",
+        symbol_briefings=[_briefing()],
+        wagn_holdings=WagnHoldingsSection(
+            as_of_date="04/24/2026",
+            source_url="https://example.com/wagn",
+            download_url="https://example.com/wagn.csv",
+            total_holdings=2,
+            top_holdings=[
+                WagnHoldingItem(ticker="AAA", name="A Co", weight_pct=10.0),
+                WagnHoldingItem(ticker="BBB", name="B Co", weight_pct=5.0),
+            ],
+            notable_changes=[
+                WagnHoldingChange(
+                    ticker="AAA",
+                    name="A Co",
+                    previous_weight_pct=8.5,
+                    current_weight_pct=10.0,
+                    delta_pct=1.5,
+                    change_type="weight_changed",
+                )
+            ],
+        ),
+    )
+
+    path = write_html_report(report, tmp_path / "reports" / "html" / "2026-04-24.html")
+
+    output = path.read_text(encoding="utf-8")
+    assert "<table" in output
+    assert "AAA" in output
+    assert "+1.5%p" in output
+    assert "BBB" in output
+    assert "5D: -3.4% / 1M: +2.1% / 1Y: -18.4% / S&amp;P 500 1Y: +11.2% / Relative: -29.6%p / RSI(14): 37.8" in output
+    assert "5D: -3.4% /" in output
+    assert "<br>" not in output
+    assert "<strong>guidance</strong> / score 5 / negative: Growth slowdown" in output
