@@ -135,7 +135,7 @@ def _parse_detail(
 ) -> PressRelease:
     soup = BeautifulSoup(html, "html.parser")
     title = _title(soup) or fallback_title
-    published_at = _published_at(soup)
+    published_at = _published_at(soup) or _published_at_from_url(url)
     extracted = (
         trafilatura.extract(html, include_comments=False, include_tables=False)
         if trafilatura is not None
@@ -175,6 +175,16 @@ def _published_at(soup: BeautifulSoup) -> str | None:
     text = soup.get_text(" ", strip=True)
     match = re.search(r"\b20\d{2}-\d{2}-\d{2}\b", text)
     return match.group(0) if match else None
+
+
+def _published_at_from_url(url: str) -> str | None:
+    path = urlsplit(url).path
+    slash_match = re.search(r"/(20\d{2})/(\d{2})/(\d{2})(?:/|$)", path)
+    if slash_match:
+        year, month, day = slash_match.groups()
+        return f"{year}-{month}-{day}"
+    dash_match = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", path)
+    return dash_match.group(1) if dash_match else None
 
 
 def _paragraph_text(soup: BeautifulSoup) -> str | None:

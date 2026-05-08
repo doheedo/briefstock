@@ -1,6 +1,7 @@
 from press_release_collector.collectors.html_collector import collect_html
 from press_release_collector.collectors.rss_collector import collect_rss
 from press_release_collector.collectors.wire_collector import collect_wire
+from press_release_collector.core.normalize import normalize_press_release
 
 
 class _Response:
@@ -68,6 +69,38 @@ def test_html_collector_prefers_internal_press_release_links(monkeypatch) -> Non
     assert releases[1].title == "Investor Deck"
     assert releases[1].url == "https://www.csisoftware.com/investor-deck.pdf"
     assert releases[1].summary is None
+
+
+def test_html_collector_uses_url_date_when_page_has_no_time(monkeypatch) -> None:
+    listing_url = "https://www.csisoftware.com/category/press-releases/"
+    release_url = "https://www.csisoftware.com/category/press-releases/2026/03/09/results"
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <article><h2><a href="{release_url}">Constellation Announces Results</a></h2></article>
+        </body></html>
+        """,
+        release_url: """
+        <html><body><main>
+          <h1>Constellation Announces Results</h1>
+          <p>Revenue increased and cash flow improved during the quarter.</p>
+        </main></body></html>
+        """,
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+
+    releases = collect_html(
+        ticker="CSU.TO",
+        company_name="Constellation Software",
+        url=listing_url,
+    )
+
+    assert releases[0].published_at == "2026-03-09"
+    assert normalize_press_release(releases[0]).published_at == "2026-03-09T00:00:00+00:00"
 
 
 def test_rss_collector_returns_empty_on_failure(monkeypatch) -> None:
