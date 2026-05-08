@@ -124,6 +124,17 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       <p class="muted">가격: n/a</p>
       {% endif %}
       <p><strong>Thesis 영향:</strong> {{ briefing.thesis_summary }}</p>
+      {% if briefing.company_disclosures %}
+      <h3>기업 홈페이지 공시</h3>
+      {% for disclosure in briefing.company_disclosures %}
+      <p><strong>{{ disclosure.title }}</strong>
+      <span class="muted">(<a href="{{ disclosure.url }}" target="_blank" rel="noopener">{{ "IR 덱" if disclosure.kind == "ir_deck" else "원문" }}</a>)</span>
+      {% if disclosure.kind == "earnings" and disclosure.summary %}
+      {{ disclosure.summary }}
+      {% endif %}
+      </p>
+      {% endfor %}
+      {% endif %}
       {% if briefing.derived_events %}
       <h3>회사 이벤트</h3>
       {% for event in briefing.derived_events %}

@@ -60,6 +60,21 @@ def _source_links(briefing: SymbolBriefing) -> str:
     return f"\n• 출처: {links}"
 
 
+def _company_homepage_links(briefing: SymbolBriefing) -> str:
+    links: list[str] = []
+    for disclosure in briefing.company_disclosures[:3]:
+        label = {
+            "earnings": "실적",
+            "ir_deck": "IR덱",
+        }.get(disclosure.kind, "PR")
+        links.append(
+            f'<a href="{escape(disclosure.url, quote=True)}">{escape(label)}</a>'
+        )
+    if not links:
+        return ""
+    return f"\n• 기업홈: {' '.join(links)}"
+
+
 def render_symbol_line(briefing: SymbolBriefing) -> str:
     ticker = escape(briefing.watchlist_item.ticker)
     name = escape(briefing.watchlist_item.name)
@@ -74,6 +89,7 @@ def render_symbol_line(briefing: SymbolBriefing) -> str:
         f"{_format_metrics(briefing)}\n"
         f"• Thesis 영향: {summary}"
         f"{question_line}"
+        f"{_company_homepage_links(briefing)}"
         f"{_source_links(briefing)}"
     )
 

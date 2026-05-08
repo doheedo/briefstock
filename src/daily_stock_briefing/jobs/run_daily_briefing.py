@@ -14,6 +14,9 @@ from daily_stock_briefing.adapters.filings.sedar_plus_adapter import SedarPlusFi
 from daily_stock_briefing.adapters.llm.openai_compatible import (
     OpenAICompatibleLlmClassifier,
 )
+from daily_stock_briefing.adapters.news.company_press_releases import (
+    CompanyPressReleaseProvider,
+)
 from daily_stock_briefing.adapters.news.http_news_adapter import HttpNewsProvider
 from daily_stock_briefing.adapters.prices.yfinance_adapter import YFinancePriceProvider
 from daily_stock_briefing.domain.enums import DailyPriority
@@ -94,6 +97,10 @@ def _fetch_news(item, provider: HttpNewsProvider | None) -> list[NewsItem]:
     if provider is None:
         return []
     return provider.fetch_news(item)
+
+
+def _fetch_company_disclosures(item, provider: CompanyPressReleaseProvider):
+    return provider.fetch_disclosures(item)
 
 
 def _fetch_filings(
@@ -188,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         _LOGGER.info("Group filter is ignored in unified delivery mode: %s", args.group)
     price_provider = YFinancePriceProvider()
     news_provider = _build_news_provider()
+    company_press_provider = CompanyPressReleaseProvider()
     llm_classifier = _build_llm_classifier()
     dart_api_key = os.getenv("DART_API_KEY")
     dart_provider = DartFilingProvider(dart_api_key) if dart_api_key else None
@@ -248,7 +256,22 @@ def main(argv: list[str] | None = None) -> int:
             warnings.append(f"{item.ticker}: filings unavailable ({exc})")
             filings = []
 
-        briefing = build_symbol_briefing(item, price, news, filings)
+        try:
+            company_disclosures = _fetch_company_disclosures(
+                item,
+                company_press_provider,
+            )
+        except Exception as exc:  # pragma: no cover - defensive job boundary
+            warnings.append(f"{item.ticker}: company disclosures unavailable ({exc})")
+            company_disclosures = []
+
+        briefing = build_symbol_briefing(
+            item,
+            price,
+            news,
+            filings,
+            company_disclosures,
+        )
         if (
             llm_classifier is not None
             and briefing.derived_events

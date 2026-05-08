@@ -128,7 +128,7 @@ def _fetch_history(ticker_data: object, ticker: str) -> object | None:
     try:
         history = ticker_data.history(period="1y", interval="1d")  # type: ignore[attr-defined]
     except Exception:
-        history = None
+        return None
     if len(_close_values(history, ticker)) >= 2:
         return history
     try:

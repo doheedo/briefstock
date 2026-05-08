@@ -8,6 +8,7 @@ from daily_stock_briefing.domain.models import (
     PriceSnapshot,
     SymbolBriefing,
     WatchlistItem,
+    CompanyDisclosure,
     WagnHoldingChange,
     WagnHoldingItem,
     WagnHoldingsSection,
@@ -77,6 +78,33 @@ def test_render_symbol_line_uses_only_supported_tags() -> None:
     assert '<a href="https://example.com/source?x=1&amp;y=2">1</a>' in html
     for unsupported in ("<ul>", "<li>", "<table>", "<style>", "<script>"):
         assert unsupported not in html
+
+
+def test_render_symbol_line_includes_company_homepage_links_without_deck_summary() -> None:
+    briefing = _briefing().model_copy(
+        update={
+            "company_disclosures": [
+                CompanyDisclosure(
+                    kind="earnings",
+                    title="Snowflake Announces Results",
+                    url="https://example.com/results",
+                    summary="Revenue increased 10%.",
+                ),
+                CompanyDisclosure(
+                    kind="ir_deck",
+                    title="Investor Presentation Deck",
+                    url="https://example.com/deck.pdf",
+                ),
+            ]
+        }
+    )
+
+    html = render_symbol_line(briefing)
+
+    assert "기업홈:" in html
+    assert '<a href="https://example.com/results">실적</a>' in html
+    assert '<a href="https://example.com/deck.pdf">IR덱</a>' in html
+    assert "Revenue increased 10%" not in html
 
 
 def test_render_telegram_html_escapes_user_text() -> None:

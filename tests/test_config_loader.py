@@ -28,6 +28,16 @@ def test_project_watchlist_includes_requested_us_and_india_adrs() -> None:
     assert by_ticker["IBN"].market == "US"
 
 
+def test_project_watchlist_includes_csu_press_release_url() -> None:
+    items = load_watchlist(Path("config/watchlist.yaml"))
+    by_ticker = {item.ticker: item for item in items}
+
+    assert (
+        by_ticker["CSU.TO"].press_release_url
+        == "https://www.csisoftware.com/category/press-releases/"
+    )
+
+
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:
     path = tmp_path / "watchlist.yaml"
     path.write_text(

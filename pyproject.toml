@@ -17,7 +17,9 @@ dependencies = [
   "PyYAML>=6.0",
   "rapidfuzz>=3.14",
   "python-dotenv>=1.0",
+  "feedparser>=6.0",
   "readability-lxml>=0.8.1",
+  "trafilatura>=1.9",
   "yfinance>=0.2.40",
 ]
 

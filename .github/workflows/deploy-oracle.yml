@@ -34,9 +34,11 @@ jobs:
             --exclude '*.pyc' \
             --exclude '.env' \
             --exclude 'logs/' \
+            --exclude 'data/' \
             --exclude 'reports/json/*.json' \
             --exclude 'reports/html/*.html' \
             --exclude 'reports/charts/' \
+            --exclude 'reports/wagn/' \
             -e "ssh -i ~/.ssh/oracle.key -p ${ORACLE_PORT:-22}" \
             ./ "$ORACLE_USER@$ORACLE_HOST:$PROJECT_DIR/"
           ssh -i ~/.ssh/oracle.key -p "${ORACLE_PORT:-22}" "$ORACLE_USER@$ORACLE_HOST" \

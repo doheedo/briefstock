@@ -9,6 +9,8 @@ reports/html/*.html
 reports/charts/
 !reports/html/sample-2026-04-24.html
 logs/
+data/
+reports/wagn/
 dist/
 build/
 *.egg-info/

@@ -1,0 +1,9 @@
+companies:
+  - ticker: CSU.TO
+    company_name: Constellation Software
+    official_sources:
+      - type: html
+        url: "https://www.csisoftware.com/category/press-releases/"
+    wire_queries:
+      - "Constellation Software"
+      - "CSU.TO"

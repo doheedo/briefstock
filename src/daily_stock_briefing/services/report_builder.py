@@ -1,5 +1,8 @@
+from datetime import UTC, datetime
+
 from daily_stock_briefing.domain.enums import DailyPriority, ThesisImpact
 from daily_stock_briefing.domain.models import (
+    CompanyDisclosure,
     FilingItem,
     NewsItem,
     PriceSnapshot,
@@ -94,8 +97,26 @@ def build_symbol_briefing(
     price_snapshot: PriceSnapshot | None,
     news_items: list[NewsItem],
     filing_items: list[FilingItem],
+    company_disclosures: list[CompanyDisclosure] | None = None,
 ) -> SymbolBriefing:
-    events = [classify_news_event(item, news) for news in news_items[:3]]
+    company_disclosures = company_disclosures or []
+    press_news = [
+        NewsItem(
+            id=disclosure.url,
+            ticker=item.ticker,
+            title=disclosure.title,
+            summary=disclosure.summary or disclosure.title,
+            publisher=item.name,
+            url=disclosure.url,
+            canonical_url=disclosure.url,
+            published_at=datetime.now(UTC),
+            source="company_press_release",
+            matched_keywords=["press release"],
+        )
+        for disclosure in company_disclosures
+        if disclosure.kind == "earnings"
+    ]
+    events = [classify_news_event(item, news) for news in [*press_news, *news_items[:3]]]
     events.extend(classify_filing_event(item, filing) for filing in filing_items[:3])
     priority = _priority_for_events(events, price_snapshot)
 
@@ -116,6 +137,7 @@ def build_symbol_briefing(
         major_news=news_items[:3],
         filings=filing_items[:3],
         derived_events=events,
+        company_disclosures=company_disclosures,
         thesis_summary=thesis_summary,
         follow_up_questions=_build_follow_up_questions(
             item,
