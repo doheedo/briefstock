@@ -49,6 +49,25 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
         by_ticker["IBN"].press_release_url
         == "https://www.icici.bank.in/about-us/invest-relations"
     )
+    assert (
+        by_ticker["TRI"].press_release_url
+        == "https://ir.thomsonreuters.com/news-and-events/press-releases"
+    )
+    assert (
+        by_ticker["WLK"].press_release_url
+        == "https://investors.westlake.com/news-events/news-releases"
+    )
+    assert (
+        by_ticker["UPST"].press_release_url
+        == "https://ir.upstart.com/news-and-events/news-releases"
+    )
+    assert by_ticker["TME"].press_release_url == "https://ir.tencentmusic.com/Press-Releases"
+    assert (
+        by_ticker["VFC"].press_release_url
+        == "https://www.vfc.com/investors/news-events-presentations/press-releases"
+    )
+    assert by_ticker["KSPI"].press_release_url == "https://ir.kaspi.kz/news/"
+    assert by_ticker["UMG.AS"].press_release_url == "https://www.universalmusic.com/news/"
 
 
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:

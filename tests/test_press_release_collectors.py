@@ -237,6 +237,40 @@ def test_html_collector_falls_back_to_all_links_and_filters_ir_noise(
     assert all(release.summary is None for release in releases)
 
 
+def test_html_collector_skips_generic_detail_headings(monkeypatch) -> None:
+    listing_url = "https://ir.upstart.com/news-and-events/news-releases"
+    release_url = "https://ir.upstart.com/news-releases/news-release-details/upstart-announces-results"
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <main><a href="{release_url}">Upstart Announces First Quarter 2026 Results</a></main>
+        </body></html>
+        """,
+        release_url: """
+        <html><head>
+          <title>Upstart Announces First Quarter 2026 Results</title>
+        </head><body><main>
+          <h1>Release Details</h1>
+          <p>Upstart reported revenue growth and improved adjusted EBITDA.</p>
+        </main></body></html>
+        """,
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+
+    releases = collect_html(
+        ticker="UPST",
+        company_name="Upstart",
+        url=listing_url,
+    )
+
+    assert releases[0].title == "Upstart Announces First Quarter 2026 Results"
+    assert "revenue growth" in releases[0].summary
+
+
 def test_html_collector_uses_url_date_when_page_has_no_time(monkeypatch) -> None:
     listing_url = "https://www.csisoftware.com/category/press-releases/"
     release_url = "https://www.csisoftware.com/category/press-releases/2026/03/09/results"

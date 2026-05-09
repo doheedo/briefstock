@@ -39,3 +39,59 @@ companies:
     wire_queries:
       - "ICICI Bank"
       - "IBN"
+  - ticker: TRI
+    company_name: Thomson Reuters
+    official_sources:
+      - type: html
+        url: "https://ir.thomsonreuters.com/news-and-events/press-releases"
+    wire_queries:
+      - "Thomson Reuters"
+      - "TRI"
+  - ticker: WLK
+    company_name: Westlake
+    official_sources:
+      - type: html
+        url: "https://investors.westlake.com/news-events/news-releases"
+    wire_queries:
+      - "Westlake"
+      - "WLK"
+  - ticker: UPST
+    company_name: Upstart
+    official_sources:
+      - type: html
+        url: "https://ir.upstart.com/news-and-events/news-releases"
+    wire_queries:
+      - "Upstart"
+      - "UPST"
+  - ticker: TME
+    company_name: Tencent Music Entertainment
+    official_sources:
+      - type: html
+        url: "https://ir.tencentmusic.com/Press-Releases"
+    wire_queries:
+      - "Tencent Music Entertainment"
+      - "TME"
+  - ticker: VFC
+    company_name: V.F. Corporation
+    official_sources:
+      - type: html
+        url: "https://www.vfc.com/investors/news-events-presentations/press-releases"
+    wire_queries:
+      - "VF Corporation"
+      - "VFC"
+  - ticker: KSPI
+    company_name: Kaspi.kz
+    official_sources:
+      - type: html
+        url: "https://ir.kaspi.kz/news/"
+    wire_queries:
+      - "Kaspi.kz"
+      - "KSPI"
+  - ticker: UMG.AS
+    company_name: Universal Music Group N.V.
+    official_sources:
+      - type: html
+        url: "https://www.universalmusic.com/news/"
+    wire_queries:
+      - "Universal Music Group"
+      - "UMG"

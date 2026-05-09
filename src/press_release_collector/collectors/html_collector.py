@@ -42,7 +42,14 @@ LINK_ONLY_PDF_TERMS = (
     "results",
     "earnings",
 )
-GENERIC_DETAIL_TITLES = {"news", "press releases", "press release", "investor relations"}
+GENERIC_DETAIL_TITLES = {
+    "news",
+    "press releases",
+    "press release",
+    "release details",
+    "press release details",
+    "investor relations",
+}
 SKIP_LINK_TERMS = (
     "email-alerts",
     "in-the-news",

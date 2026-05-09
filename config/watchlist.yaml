@@ -48,6 +48,7 @@ watchlist:
     group: data_info
     thesis: Westlaw, 법률 데이터, AI 계약 관련 이벤트 추적
     keywords: [Thomson Reuters, Westlaw, legal AI, contract]
+    press_release_url: https://ir.thomsonreuters.com/news-and-events/press-releases
     source_priority: [news, filings, price]
   - ticker: HEPS
     name: Hepsiburada
@@ -62,6 +63,7 @@ watchlist:
     group: fintech_platform
     thesis: 슈퍼앱 퀄리티, 성장 대비 멀티플 밸류, 거래액 모멘텀 추적
     keywords: [Kaspi, Kaspi.kz, Hepsiburada, fintech]
+    press_release_url: https://ir.kaspi.kz/news/
     source_priority: [news, filings, price]
   - ticker: WLK
     name: Westlake
@@ -69,6 +71,7 @@ watchlist:
     group: industrial_luxury
     thesis: 화학, M&A, 수직계열화 관련 주요 이벤트 추적
     keywords: [Westlake, chemicals, acquisition, vertical integration]
+    press_release_url: https://investors.westlake.com/news-events/news-releases
     source_priority: [news, filings, price]
   - ticker: LC
     name: LendingClub
@@ -83,6 +86,7 @@ watchlist:
     group: fintech_platform
     thesis: AI 대출 모델과 핀테크 대출 비교 맥락 추적
     keywords: [Upstart, AI lending, credit, loan]
+    press_release_url: https://ir.upstart.com/news-and-events/news-releases
     source_priority: [news, filings, price]
   - ticker: TME
     name: Tencent Music Entertainment
@@ -90,6 +94,7 @@ watchlist:
     group: data_info
     thesis: 플랫폼 퀄리티, 현금흐름 밸류, ARPU·구독 모멘텀 추적
     keywords: [Tencent Music, TME, online music, subscription, China]
+    press_release_url: https://ir.tencentmusic.com/Press-Releases
     source_priority: [news, filings, price]
   - ticker: P911.DE
     name: Porsche AG
@@ -118,6 +123,7 @@ watchlist:
     group: data_info
     thesis: 카탈로그 퀄리티, 로열티 현금흐름 밸류, 스트리밍 성장 모멘텀 추적
     keywords: [UMG, Universal Music, streaming, royalty, catalog]
+    press_release_url: https://www.universalmusic.com/news/
     source_priority: [news, filings, price]
   - ticker: QSR
     name: Restaurant Brands International Inc.
@@ -174,6 +180,7 @@ watchlist:
     group: industrial_luxury
     thesis: 턴어라운드 실행 퀄리티, 다운사이드 밸류, 재고·마진 모멘텀 추적
     keywords: [VF Corporation, Vans, The North Face, margin]
+    press_release_url: https://www.vfc.com/investors/news-events-presentations/press-releases
     source_priority: [news, filings, price]
   - ticker: BFF.MI
     name: BFF Bank SpA
