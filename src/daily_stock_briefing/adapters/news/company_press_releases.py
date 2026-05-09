@@ -4,12 +4,23 @@ from pathlib import Path
 
 from daily_stock_briefing.domain.models import CompanyDisclosure, WatchlistItem
 from press_release_collector.collectors.html_collector import collect_html
+from press_release_collector.collectors.rss_collector import collect_rss
 from press_release_collector.core.dedupe import dedupe_press_releases
 from press_release_collector.core.normalize import normalize_press_release
 from press_release_collector.core.storage import bulk_upsert_press_releases
 
 EARNINGS_TERMS = (
     "announces results",
+    "announces first quarter",
+    "announces second quarter",
+    "announces third quarter",
+    "announces fourth quarter",
+    "announces full year",
+    "reports first quarter",
+    "reports second quarter",
+    "reports third quarter",
+    "reports fourth quarter",
+    "reports full year",
     "financial results",
     "earnings",
     "quarter ended",
@@ -40,6 +51,11 @@ def _disclosure_kind(title: str, url: str) -> str:
     return "press_release"
 
 
+def _is_rss_url(url: str) -> bool:
+    lowered = url.lower()
+    return "/rss/" in lowered or lowered.endswith(".rss") or lowered.endswith(".xml")
+
+
 class CompanyPressReleaseProvider:
     def __init__(
         self,
@@ -53,12 +69,16 @@ class CompanyPressReleaseProvider:
     def fetch_disclosures(self, item: WatchlistItem) -> list[CompanyDisclosure]:
         if not item.press_release_url:
             return []
-        releases = collect_html(
-            ticker=item.ticker,
-            company_name=item.name,
-            url=str(item.press_release_url),
-            max_items=self._max_items,
-        )
+        url = str(item.press_release_url)
+        if _is_rss_url(url):
+            releases = collect_rss(item.ticker, item.name, url)[: self._max_items]
+        else:
+            releases = collect_html(
+                ticker=item.ticker,
+                company_name=item.name,
+                url=url,
+                max_items=self._max_items,
+            )
         normalized = [normalize_press_release(release) for release in releases]
         unique = dedupe_press_releases(normalized)
         bulk_upsert_press_releases(self._db_path, unique)

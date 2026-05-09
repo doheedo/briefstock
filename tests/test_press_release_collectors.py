@@ -351,9 +351,72 @@ def test_rss_collector_returns_empty_on_failure(monkeypatch) -> None:
     def _boom(url: str):
         raise RuntimeError("network")
 
+    monkeypatch.setattr("press_release_collector.collectors.rss_collector.FEEDPARSER_AVAILABLE", True)
     monkeypatch.setattr("press_release_collector.collectors.rss_collector.feedparser.parse", _boom)
+    monkeypatch.setattr("press_release_collector.collectors.rss_collector.httpx.get", _boom)
 
     assert collect_rss("CSU.TO", "Constellation Software", "https://example.com/rss") == []
+
+
+def test_rss_collector_uses_xml_fallback_when_feedparser_missing(monkeypatch) -> None:
+    class _XmlResponse:
+        content = b"""
+        <rss><channel><item>
+          <title>Uber Announces Results</title>
+          <link>https://investor.uber.com/news/results</link>
+          <pubDate>Fri, 08 May 2026 12:00:00 GMT</pubDate>
+          <description>Revenue increased during the quarter.</description>
+        </item></channel></rss>
+        """
+
+        def raise_for_status(self) -> None:
+            return None
+
+    def _boom(url: str):
+        raise RuntimeError("feedparser missing")
+
+    monkeypatch.setattr("press_release_collector.collectors.rss_collector.FEEDPARSER_AVAILABLE", False)
+    monkeypatch.setattr("press_release_collector.collectors.rss_collector.feedparser.parse", _boom)
+    monkeypatch.setattr(
+        "press_release_collector.collectors.rss_collector.httpx.get",
+        lambda *args, **kwargs: _XmlResponse(),
+    )
+
+    releases = collect_rss("UBER", "Uber", "https://investor.uber.com/rss")
+
+    assert releases[0].title == "Uber Announces Results"
+    assert releases[0].url == "https://investor.uber.com/news/results"
+    assert "Revenue increased" in releases[0].summary
+
+
+def test_rss_collector_xml_fallback_resolves_relative_links(monkeypatch) -> None:
+    class _XmlResponse:
+        content = b"""
+        <rss><channel><item>
+          <title>Pinterest Announces Results</title>
+          <link>/files/doc_earnings/2026/q1/earnings-result/Q126-PressRelease.pdf</link>
+        </item></channel></rss>
+        """
+
+        def raise_for_status(self) -> None:
+            return None
+
+    def _boom(url: str):
+        raise RuntimeError("feedparser missing")
+
+    monkeypatch.setattr("press_release_collector.collectors.rss_collector.FEEDPARSER_AVAILABLE", False)
+    monkeypatch.setattr("press_release_collector.collectors.rss_collector.feedparser.parse", _boom)
+    monkeypatch.setattr(
+        "press_release_collector.collectors.rss_collector.httpx.get",
+        lambda *args, **kwargs: _XmlResponse(),
+    )
+
+    releases = collect_rss("PINS", "Pinterest", "https://investor.pinterestinc.com/rss/pressrelease.aspx")
+
+    assert (
+        releases[0].url
+        == "https://investor.pinterestinc.com/files/doc_earnings/2026/q1/earnings-result/Q126-PressRelease.pdf"
+    )
 
 
 def test_wire_collector_mvp_returns_empty_fallback() -> None:

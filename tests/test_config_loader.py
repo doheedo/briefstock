@@ -72,6 +72,15 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
         by_ticker["NVO"].press_release_url
         == "https://www.novonordisk.com/news-and-media/latest-news.html"
     )
+    assert by_ticker["LC"].press_release_url == "https://ir.lendingclub.com/rss/pressrelease.aspx"
+    assert by_ticker["QSR"].press_release_url == "https://www.rbi.com/rss/pressrelease.aspx"
+    assert (
+        by_ticker["PINS"].press_release_url
+        == "https://investor.pinterestinc.com/rss/pressrelease.aspx"
+    )
+    assert by_ticker["UBER"].press_release_url == "https://investor.uber.com/rss/PressRelease.aspx"
+    assert by_ticker["AMZN"].press_release_url == "https://ir.aboutamazon.com/rss/pressrelease.aspx"
+    assert by_ticker["META"].press_release_url == "https://investor.atmeta.com/rss/pressrelease.aspx"
 
 
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:

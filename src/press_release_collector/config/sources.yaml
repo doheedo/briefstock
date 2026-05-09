@@ -103,3 +103,51 @@ companies:
     wire_queries:
       - "Novo Nordisk"
       - "NVO"
+  - ticker: LC
+    company_name: LendingClub
+    official_sources:
+      - type: rss
+        url: "https://ir.lendingclub.com/rss/pressrelease.aspx"
+    wire_queries:
+      - "LendingClub"
+      - "LC"
+  - ticker: QSR
+    company_name: Restaurant Brands International Inc.
+    official_sources:
+      - type: rss
+        url: "https://www.rbi.com/rss/pressrelease.aspx"
+    wire_queries:
+      - "Restaurant Brands International"
+      - "QSR"
+  - ticker: PINS
+    company_name: Pinterest, Inc.
+    official_sources:
+      - type: rss
+        url: "https://investor.pinterestinc.com/rss/pressrelease.aspx"
+    wire_queries:
+      - "Pinterest"
+      - "PINS"
+  - ticker: UBER
+    company_name: Uber Technologies, Inc.
+    official_sources:
+      - type: rss
+        url: "https://investor.uber.com/rss/PressRelease.aspx"
+    wire_queries:
+      - "Uber Technologies"
+      - "UBER"
+  - ticker: AMZN
+    company_name: Amazon.com, Inc.
+    official_sources:
+      - type: rss
+        url: "https://ir.aboutamazon.com/rss/pressrelease.aspx"
+    wire_queries:
+      - "Amazon.com"
+      - "AMZN"
+  - ticker: META
+    company_name: Meta Platforms, Inc.
+    official_sources:
+      - type: rss
+        url: "https://investor.atmeta.com/rss/pressrelease.aspx"
+    wire_queries:
+      - "Meta Platforms"
+      - "META"

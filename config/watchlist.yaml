@@ -79,6 +79,7 @@ watchlist:
     group: fintech_platform
     thesis: 핀테크 대출 플랫폼의 신용 품질과 예금 조달력 추적
     keywords: [LendingClub, credit, deposits, loan originations]
+    press_release_url: https://ir.lendingclub.com/rss/pressrelease.aspx
     source_priority: [news, filings, price]
   - ticker: UPST
     name: Upstart
@@ -131,6 +132,7 @@ watchlist:
     group: industrial_luxury
     thesis: 프랜차이즈 모델 퀄리티, FCF 밸류, 동일매장 매출 모멘텀 추적
     keywords: [QSR, Burger King, Tim Hortons, Popeyes, franchise]
+    press_release_url: https://www.rbi.com/rss/pressrelease.aspx
     source_priority: [news, filings, price]
   - ticker: PINS
     name: Pinterest, Inc. Class A
@@ -138,6 +140,7 @@ watchlist:
     group: data_info
     thesis: 광고 플랫폼 퀄리티, 수익화 대비 밸류, MAU·ARPU 모멘텀 추적
     keywords: [Pinterest, PINS, ad monetization, users, commerce]
+    press_release_url: https://investor.pinterestinc.com/rss/pressrelease.aspx
     source_priority: [news, filings, price]
   - ticker: NU
     name: Nu Holdings Ltd. Class A
@@ -159,6 +162,7 @@ watchlist:
     group: fintech_platform
     thesis: 플랫폼 네트워크 퀄리티, 이익전환 밸류, 예약총액 모멘텀 추적
     keywords: [Uber, rideshare, delivery, take rate, profitability]
+    press_release_url: https://investor.uber.com/rss/PressRelease.aspx
     source_priority: [news, filings, price]
   - ticker: AMZN
     name: Amazon.com, Inc.
@@ -166,6 +170,7 @@ watchlist:
     group: data_info
     thesis: AWS+광고 퀄리티, 현금창출력 밸류, 마진 레버리지 모멘텀 추적
     keywords: [Amazon, AWS, e-commerce, advertising, margin]
+    press_release_url: https://ir.aboutamazon.com/rss/pressrelease.aspx
     source_priority: [news, filings, price]
   - ticker: WISE.L
     name: Wise PLC Class A
@@ -209,6 +214,7 @@ watchlist:
     group: data_info
     thesis: 광고 엔진 퀄리티, 이익률 기반 밸류, 광고단가 모멘텀 추적
     keywords: [Meta, Facebook, Instagram, Reels, AI]
+    press_release_url: https://investor.atmeta.com/rss/pressrelease.aspx
     source_priority: [news, filings, price]
   - ticker: CVE
     name: Cenovus Energy Inc.

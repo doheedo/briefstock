@@ -106,6 +106,84 @@ def test_report_builder_turns_earnings_press_release_into_event() -> None:
     ]
 
 
+def test_company_press_provider_classifies_reports_quarter_results_as_earnings(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    item = _item().model_copy(update={"press_release_url": "https://example.com/news"})
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.company_press_releases.collect_html",
+        lambda **kwargs: [
+            PressRelease.from_raw(
+                ticker="META",
+                company_name="Meta Platforms",
+                title="Meta Reports First Quarter 2026 Results",
+                url="https://investor.atmeta.com/results",
+                source_name="investor.atmeta.com",
+                source_type="official_html",
+            )
+        ],
+    )
+
+    disclosures = CompanyPressReleaseProvider(
+        db_path=tmp_path / "press.sqlite"
+    ).fetch_disclosures(item)
+
+    assert disclosures[0].kind == "earnings"
+
+
+def test_company_press_provider_classifies_announces_quarter_results_as_earnings(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    item = _item().model_copy(update={"press_release_url": "https://example.com/news"})
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.company_press_releases.collect_html",
+        lambda **kwargs: [
+            PressRelease.from_raw(
+                ticker="AMZN",
+                company_name="Amazon.com",
+                title="Amazon.com Announces First Quarter Results",
+                url="https://ir.aboutamazon.com/results",
+                source_name="ir.aboutamazon.com",
+                source_type="official_html",
+            )
+        ],
+    )
+
+    disclosures = CompanyPressReleaseProvider(
+        db_path=tmp_path / "press.sqlite"
+    ).fetch_disclosures(item)
+
+    assert disclosures[0].kind == "earnings"
+
+
+def test_company_press_provider_uses_rss_urls(tmp_path, monkeypatch) -> None:
+    item = _item().model_copy(
+        update={"ticker": "UBER", "press_release_url": "https://investor.uber.com/rss/PressRelease.aspx"}
+    )
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.company_press_releases.collect_rss",
+        lambda ticker, company_name, url: [
+            PressRelease.from_raw(
+                ticker=ticker,
+                company_name=company_name,
+                title="Uber Announces Results for First Quarter 2026",
+                url="https://investor.uber.com/news/results",
+                source_name=url,
+                source_type="official_rss",
+            )
+        ],
+    )
+
+    disclosures = CompanyPressReleaseProvider(
+        db_path=tmp_path / "press.sqlite"
+    ).fetch_disclosures(item)
+
+    assert disclosures[0].kind == "earnings"
+    assert disclosures[0].title == "Uber Announces Results for First Quarter 2026"
+
+
 def test_html_report_renders_press_release_summary_and_deck_link(tmp_path) -> None:
     item = _item()
     briefing = build_symbol_briefing(
