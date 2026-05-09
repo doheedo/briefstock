@@ -117,14 +117,29 @@ def test_openai_compatible_llm_returns_original_on_bad_response(monkeypatch) -> 
 def test_openai_compatible_llm_respects_minimum_request_interval(monkeypatch) -> None:
     requests = []
     sleeps = []
-    times = iter([100.0, 100.5])
+    current_time = 100.0
+
+    def _monotonic() -> float:
+        return current_time
+
+    def _sleep(seconds: float) -> None:
+        nonlocal current_time
+        sleeps.append(seconds)
+        current_time += seconds
+
+    class _AdvancingClient(_FakeClient):
+        def post(self, url, headers=None, json=None):
+            nonlocal current_time
+            current_time += 0.5
+            return super().post(url, headers=headers, json=json)
+
     monkeypatch.setattr(
         openai_compatible.httpx,
         "Client",
-        lambda **kwargs: _FakeClient(requests, **kwargs),
+        lambda **kwargs: _AdvancingClient(requests, **kwargs),
     )
-    monkeypatch.setattr(openai_compatible.time, "monotonic", lambda: next(times))
-    monkeypatch.setattr(openai_compatible.time, "sleep", sleeps.append)
+    monkeypatch.setattr(openai_compatible.time, "monotonic", _monotonic)
+    monkeypatch.setattr(openai_compatible.time, "sleep", _sleep)
     client = OpenAICompatibleLlmClassifier(
         api_key="secret",
         base_url="https://api.example.com/v1",
@@ -134,6 +149,7 @@ def test_openai_compatible_llm_respects_minimum_request_interval(monkeypatch) ->
 
     client.refine_briefing(_briefing())
     client.refine_briefing(_briefing())
+    client.refine_briefing(_briefing())
 
-    assert sleeps == [1.5]
-    assert len(requests) == 2
+    assert sleeps == [1.5, 1.5]
+    assert len(requests) == 3

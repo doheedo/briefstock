@@ -171,10 +171,7 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             elapsed = now - self._last_request_at
             if elapsed < self._min_interval_seconds:
                 time.sleep(self._min_interval_seconds - elapsed)
-        # Timestamp is recorded before the actual HTTP request intentionally.
-        # This ensures the interval is measured from when we *start* sending,
-        # not when the response arrives, so back-to-back calls never exceed
-        # the configured RPM cap even if individual requests complete quickly.
+                now = time.monotonic()
         self._last_request_at = now
 
     def _request_payload(self, briefing: SymbolBriefing) -> dict[str, Any]:
