@@ -125,13 +125,49 @@ def test_html_collector_does_not_match_press_inside_unrelated_words(
     monkeypatch,
 ) -> None:
     listing_url = "https://www.hdfcbank.com/personal/about-us/investor-relations/financial-results"
-    release_url = "https://www.hdfcbank.com/content/results/press-release-q1.pdf"
+    release_url = "https://www.hdfcbank.com/content/results/press-release-q1"
     pages = {
         listing_url: f"""
         <html><body>
           <main>
             <a href="/xpressway/insta-services/update-nominee">Update Nominee</a>
             <a href="{release_url}"></a>
+          </main>
+        </body></html>
+        """,
+        release_url: """
+        <html><body><main>
+          <h1>Press Release Q1</h1>
+          <p>HDFC Bank reported quarterly financial results for the period.</p>
+        </main></body></html>
+        """,
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+
+    releases = collect_html(
+        ticker="HDB",
+        company_name="HDFC Bank",
+        url=listing_url,
+    )
+
+    assert requests == [listing_url, release_url]
+    assert len(releases) == 1
+    assert releases[0].url == release_url
+    assert releases[0].title == "Press Release Q1"
+
+
+def test_html_collector_keeps_pdf_links_without_fetching_or_summary(monkeypatch) -> None:
+    listing_url = "https://www.hdfcbank.com/personal/about-us/investor-relations/financial-results"
+    pdf_url = "https://www.hdfcbank.com/content/results/press-release-q1.pdf"
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <main>
+            <a href="{pdf_url}">Press Release Q1</a>
           </main>
         </body></html>
         """,
@@ -150,7 +186,7 @@ def test_html_collector_does_not_match_press_inside_unrelated_words(
 
     assert requests == [listing_url]
     assert len(releases) == 1
-    assert releases[0].url == release_url
+    assert releases[0].url == pdf_url
     assert releases[0].title == "Press Release Q1"
     assert releases[0].summary is None
 
