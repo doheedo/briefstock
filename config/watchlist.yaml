@@ -34,6 +34,7 @@ watchlist:
     group: data_info
     thesis: 미국 상장 ADR 기준으로 LexisNexis, Elsevier, 법률 및 연구 데이터 해자 추적
     keywords: [RELX, LexisNexis, Elsevier, legal AI, research data]
+    press_release_url: https://www.relx.com/rss/press-releases
     source_priority: [news, filings, price]
   - ticker: WKL.AS
     name: Wolters Kluwer
@@ -222,6 +223,7 @@ watchlist:
     group: industrial_luxury
     thesis: 저원가 자산 퀄리티, 자산가치 대비 밸류, 크랙스프레드 모멘텀 추적
     keywords: [Cenovus, oil sands, refining margin, energy]
+    press_release_url: https://www.cenovus.com/Investors/Financial-results-and-reports
     source_priority: [news, filings, price]
   - ticker: NVO
     name: Novo Nordisk A/S

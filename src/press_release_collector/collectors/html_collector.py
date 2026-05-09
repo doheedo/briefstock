@@ -61,6 +61,7 @@ SKIP_LINK_TERMS = (
     "/about-us/voting-result",
     "au-ir-archive",
     "annual-reports",
+    "archived-annual-documents",
     "esg-report",
     "investor-faqs",
     "investors-faqs",
@@ -198,7 +199,12 @@ def _title_from_url(url: str) -> str:
 
 def _should_skip_link(url: str, title: str = "") -> bool:
     lowered = f"{title} {url}".lower()
-    return any(term in lowered for term in SKIP_LINK_TERMS)
+    path = urlsplit(url).path.rstrip("/").lower()
+    return (
+        any(term in lowered for term in SKIP_LINK_TERMS)
+        or path == "/news-and-stories"
+        or path == "/investors/financial-results-and-reports"
+    )
 
 
 def _same_document(link: str, base_url: str) -> bool:

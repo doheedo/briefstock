@@ -151,3 +151,19 @@ companies:
     wire_queries:
       - "Meta Platforms"
       - "META"
+  - ticker: RELX
+    company_name: RELX plc ADR
+    official_sources:
+      - type: rss
+        url: "https://www.relx.com/rss/press-releases"
+    wire_queries:
+      - "RELX"
+      - "RELX plc"
+  - ticker: CVE
+    company_name: Cenovus Energy Inc.
+    official_sources:
+      - type: html
+        url: "https://www.cenovus.com/Investors/Financial-results-and-reports"
+    wire_queries:
+      - "Cenovus Energy"
+      - "CVE"

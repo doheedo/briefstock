@@ -271,6 +271,41 @@ def test_html_collector_skips_generic_detail_headings(monkeypatch) -> None:
     assert "revenue growth" in releases[0].summary
 
 
+def test_html_collector_filters_cenovus_listing_navigation(monkeypatch) -> None:
+    listing_url = "https://www.cenovus.com/Investors/Financial-results-and-reports"
+    release_url = "https://www.cenovus.com/News-and-Stories/News-releases/2026/3288594"
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <main>
+            <a href="{release_url}">Cenovus announces first-quarter 2026 results</a>
+            <a href="/Investors/Financial-results-and-reports/Archived-annual-documents-for-acquired-companies">Archived annual documents</a>
+            <a href="/News-and-Stories">News and stories</a>
+          </main>
+        </body></html>
+        """,
+        release_url: """
+        <html><body><main>
+          <h1>Cenovus announces first-quarter 2026 results</h1>
+          <p>Cenovus reported upstream production and financial results for the quarter.</p>
+        </main></body></html>
+        """,
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+
+    releases = collect_html(
+        ticker="CVE",
+        company_name="Cenovus",
+        url=listing_url,
+    )
+
+    assert [release.url for release in releases] == [release_url]
+
+
 def test_html_collector_uses_url_date_when_page_has_no_time(monkeypatch) -> None:
     listing_url = "https://www.csisoftware.com/category/press-releases/"
     release_url = "https://www.csisoftware.com/category/press-releases/2026/03/09/results"

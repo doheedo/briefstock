@@ -81,6 +81,11 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
     assert by_ticker["UBER"].press_release_url == "https://investor.uber.com/rss/PressRelease.aspx"
     assert by_ticker["AMZN"].press_release_url == "https://ir.aboutamazon.com/rss/pressrelease.aspx"
     assert by_ticker["META"].press_release_url == "https://investor.atmeta.com/rss/pressrelease.aspx"
+    assert by_ticker["RELX"].press_release_url == "https://www.relx.com/rss/press-releases"
+    assert (
+        by_ticker["CVE"].press_release_url
+        == "https://www.cenovus.com/Investors/Financial-results-and-reports"
+    )
 
 
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:
