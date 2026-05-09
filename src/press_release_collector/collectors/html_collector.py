@@ -164,10 +164,13 @@ def _filter_candidate_anchors(
         title = clean_spaces(anchor.get_text(" ", strip=True))
         href = str(anchor.get("href") or "")
         link = urljoin(base_url, href)
-        title = title or _title_from_url(link)
+        if _is_generic_link_title(title) or _is_pdf_asset_link(link):
+            title = _title_from_url(link)
+        else:
+            title = title or _title_from_url(link)
         parts = urlsplit(link)
         lowered = f"{title} {parts.path}".lower()
-        if parts.netloc.lower() != base_host:
+        if parts.netloc.lower() != base_host and not _is_pdf_asset_link(link):
             continue
         if _should_skip_link(link, title):
             continue
@@ -195,6 +198,10 @@ def _title_from_url(url: str) -> str:
     stem = unquote(PurePosixPath(urlsplit(url).path).stem)
     title = re.sub(r"[-_]+", " ", stem)
     return clean_spaces(title).title()
+
+
+def _is_generic_link_title(title: str) -> bool:
+    return title.strip().lower() in {"download", "download pdf", "pdf"}
 
 
 def _should_skip_link(url: str, title: str = "") -> bool:
@@ -228,6 +235,10 @@ def _is_link_only_pdf(url: str, title: str) -> bool:
     return urlsplit(url).path.lower().endswith(".pdf") and any(
         term in lowered for term in LINK_ONLY_PDF_TERMS
     )
+
+
+def _is_pdf_asset_link(url: str) -> bool:
+    return urlsplit(url).path.lower().endswith(".pdf")
 
 
 def _parse_detail(

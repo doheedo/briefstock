@@ -191,6 +191,38 @@ def test_html_collector_keeps_pdf_links_without_fetching_or_summary(monkeypatch)
     assert releases[0].summary is None
 
 
+def test_html_collector_keeps_external_pdf_asset_links(monkeypatch) -> None:
+    listing_url = "https://investor.bff.com/en/press-releases"
+    pdf_url = (
+        "https://edge.sitecorecloud.io/bffbanking/media/Project/BFFWebsites/"
+        "investorrelations/Eng-PDF/Press-releases/2026/April/"
+        "20260430_BFF---PR_BoD-approves-AR25.pdf"
+    )
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <main><a href="{pdf_url}">Download PDF</a></main>
+        </body></html>
+        """,
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+
+    releases = collect_html(
+        ticker="BFF.MI",
+        company_name="BFF Bank",
+        url=listing_url,
+    )
+
+    assert requests == [listing_url]
+    assert releases[0].url == pdf_url
+    assert releases[0].title == "20260430 Bff Pr Bod Approves Ar25"
+    assert releases[0].summary is None
+
+
 def test_html_collector_falls_back_to_all_links_and_filters_ir_noise(
     monkeypatch,
 ) -> None:

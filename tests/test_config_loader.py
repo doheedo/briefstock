@@ -86,6 +86,7 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
         by_ticker["CVE"].press_release_url
         == "https://www.cenovus.com/Investors/Financial-results-and-reports"
     )
+    assert by_ticker["BFF.MI"].press_release_url == "https://investor.bff.com/en/press-releases"
 
 
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:

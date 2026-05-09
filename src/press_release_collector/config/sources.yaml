@@ -167,3 +167,11 @@ companies:
     wire_queries:
       - "Cenovus Energy"
       - "CVE"
+  - ticker: BFF.MI
+    company_name: BFF Bank SpA
+    official_sources:
+      - type: html
+        url: "https://investor.bff.com/en/press-releases"
+    wire_queries:
+      - "BFF Bank"
+      - "BFF.MI"

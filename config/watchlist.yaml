@@ -194,6 +194,7 @@ watchlist:
     group: fintech_platform
     thesis: 니치 금융 퀄리티, 배당·P/B 밸류, 순이자이익 모멘텀 추적
     keywords: [BFF Bank, Italy, specialty finance, funding]
+    press_release_url: https://investor.bff.com/en/press-releases
     source_priority: [news, filings, price]
   - ticker: GOOG
     name: Alphabet Inc. (Google)
