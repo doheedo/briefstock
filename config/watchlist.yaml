@@ -275,4 +275,5 @@ watchlist:
     group: fintech_platform
     thesis: 인도 민간은행 퀄리티, ROE·자산건전성 밸류, 예금·대출성장 모멘텀 추적
     keywords: [ICICI Bank, IBN, India bank, ADR, ROE]
+    press_release_url: https://www.icici.bank.in/about-us/invest-relations
     source_priority: [news, filings, price]

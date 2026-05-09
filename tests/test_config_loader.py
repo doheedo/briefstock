@@ -45,6 +45,10 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
         by_ticker["HDB"].press_release_url
         == "https://www.hdfc.bank.in/about-us/investor-relations/financial-results"
     )
+    assert (
+        by_ticker["IBN"].press_release_url
+        == "https://www.icici.bank.in/about-us/invest-relations"
+    )
 
 
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:

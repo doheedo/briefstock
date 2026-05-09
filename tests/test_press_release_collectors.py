@@ -191,6 +191,52 @@ def test_html_collector_keeps_pdf_links_without_fetching_or_summary(monkeypatch)
     assert releases[0].summary is None
 
 
+def test_html_collector_falls_back_to_all_links_and_filters_ir_noise(
+    monkeypatch,
+) -> None:
+    listing_url = "https://www.icici.bank.in/about-us/invest-relations"
+    presentation_url = (
+        "https://www.icici.bank.in/content/dam/icicibank/india/managed-assets/docs/"
+        "about-us/2026/2026_01_Q3-2026_investor-presentation.pdf"
+    )
+    results_url = (
+        "https://www.icici.bank.in/content/dam/icicibank/india/managed-assets/docs/"
+        "about-us/2026/icici-bank-financial-results-q3-2026.pdf"
+    )
+    subsidiary_url = (
+        "https://www.icici.bank.in/content/dam/icicibank/india/managed-assets/docs/"
+        "about-us/2025/lombard-investor-presentation-dec2025.pdf"
+    )
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <main><a href="/about-us/investor">Investor Presentations</a></main>
+          <section>
+            <a href="{presentation_url}">VIEW PRESENTATION</a>
+            <a href="{results_url}">ICICI Bank: Financial Results for quarter ended December 31, 2025 PDF 259 KB</a>
+            <a href="{subsidiary_url}">ICICI Lombard General: Investor Presentation for quarter ended December 31, 2025 PDF 4.08 MB</a>
+            <a href="/about-us/voting-result">Voting Results</a>
+          </section>
+        </body></html>
+        """,
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+
+    releases = collect_html(
+        ticker="IBN",
+        company_name="ICICI Bank Limited ADR",
+        url=listing_url,
+    )
+
+    assert requests == [listing_url]
+    assert [release.url for release in releases] == [presentation_url, results_url]
+    assert all(release.summary is None for release in releases)
+
+
 def test_html_collector_uses_url_date_when_page_has_no_time(monkeypatch) -> None:
     listing_url = "https://www.csisoftware.com/category/press-releases/"
     release_url = "https://www.csisoftware.com/category/press-releases/2026/03/09/results"

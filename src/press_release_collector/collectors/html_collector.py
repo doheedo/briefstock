@@ -49,7 +49,17 @@ SKIP_LINK_TERMS = (
     "board-of-directors",
     "investor-charter",
     "/about-us/investor-relations",
+    "/about-us/investor",
+    "/about-us/qfr",
+    "/about-us/voting-result",
+    "au-ir-archive",
+    "annual-reports",
+    "esg-report",
     "investor-faqs",
+    "investors-faqs",
+    "lombard",
+    "prudential",
+    "pruamc",
     "contacts",
     "news-room",
 )
@@ -122,8 +132,24 @@ def _candidate_links(
     anchors = []
     for selector in ("article a[href]", "main a[href]", "h1 a[href]", "h2 a[href]", "h3 a[href]"):
         anchors.extend(soup.select(selector))
-    anchors = anchors or soup.find_all("a", href=True)
+    out = _filter_candidate_anchors(anchors, base_url, base_host, max_items=max_items)
+    if out:
+        return out
+    return _filter_candidate_anchors(
+        soup.find_all("a", href=True),
+        base_url,
+        base_host,
+        max_items=max_items,
+    )
 
+
+def _filter_candidate_anchors(
+    anchors,
+    base_url: str,
+    base_host: str,
+    *,
+    max_items: int,
+) -> list[tuple[str, str]]:
     out: list[tuple[str, str]] = []
     seen: set[str] = set()
     for anchor in anchors:
@@ -135,7 +161,7 @@ def _candidate_links(
         lowered = f"{title} {parts.path}".lower()
         if parts.netloc.lower() != base_host:
             continue
-        if _should_skip_link(link):
+        if _should_skip_link(link, title):
             continue
         if parts.path.lower().endswith(SKIP_EXTENSIONS):
             continue
@@ -163,8 +189,8 @@ def _title_from_url(url: str) -> str:
     return clean_spaces(title).title()
 
 
-def _should_skip_link(url: str) -> bool:
-    lowered = url.lower()
+def _should_skip_link(url: str, title: str = "") -> bool:
+    lowered = f"{title} {url}".lower()
     return any(term in lowered for term in SKIP_LINK_TERMS)
 
 

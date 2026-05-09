@@ -31,3 +31,11 @@ companies:
     wire_queries:
       - "HDFC Bank"
       - "HDB"
+  - ticker: IBN
+    company_name: ICICI Bank Limited
+    official_sources:
+      - type: html
+        url: "https://www.icici.bank.in/about-us/invest-relations"
+    wire_queries:
+      - "ICICI Bank"
+      - "IBN"
