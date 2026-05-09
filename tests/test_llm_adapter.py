@@ -3,7 +3,12 @@ from daily_stock_briefing.adapters.llm.openai_compatible import (
     OpenAICompatibleLlmClassifier,
 )
 from daily_stock_briefing.domain.enums import DailyPriority, EventCategory, ThesisImpact
-from daily_stock_briefing.domain.models import CompanyEvent, SymbolBriefing, WatchlistItem
+from daily_stock_briefing.domain.models import (
+    CompanyDisclosure,
+    CompanyEvent,
+    SymbolBriefing,
+    WatchlistItem,
+)
 
 
 class _FakeResponse:
@@ -112,6 +117,65 @@ def test_openai_compatible_llm_returns_original_on_bad_response(monkeypatch) -> 
     briefing = _briefing()
 
     assert client.refine_briefing(briefing) == briefing
+
+
+def test_openai_compatible_llm_translates_company_disclosure_summaries(
+    monkeypatch,
+) -> None:
+    class _TranslateResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                '{"summaries":[{"index":0,'
+                                '"summary_ko":"매출이 전년 대비 10% 증가했습니다."}]}'
+                            )
+                        }
+                    }
+                ]
+            }
+
+    class _TranslateClient(_FakeClient):
+        def post(self, url, headers=None, json=None):
+            self._requests.append({"url": url, "headers": headers, "json": json})
+            return _TranslateResponse()
+
+    requests = []
+    monkeypatch.setattr(
+        openai_compatible.httpx,
+        "Client",
+        lambda **kwargs: _TranslateClient(requests, **kwargs),
+    )
+    client = OpenAICompatibleLlmClassifier(
+        api_key="secret",
+        base_url="https://api.example.com/v1",
+        model="model-1",
+    )
+    disclosures = [
+        CompanyDisclosure(
+            kind="earnings",
+            title="Company Reports Results",
+            url="https://example.com/results",
+            summary="Revenue increased 10% year over year.",
+        ),
+        CompanyDisclosure(
+            kind="ir_deck",
+            title="Investor Deck",
+            url="https://example.com/deck.pdf",
+        ),
+    ]
+
+    translated = client.translate_company_disclosures(disclosures)
+
+    assert translated[0].summary == "매출이 전년 대비 10% 증가했습니다."
+    assert translated[1].summary is None
+    assert requests[0]["json"]["response_format"] == {"type": "json_object"}
+    assert "Revenue increased 10%" in requests[0]["json"]["messages"][1]["content"]
 
 
 def test_openai_compatible_llm_respects_minimum_request_interval(monkeypatch) -> None:

@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 
 from daily_stock_briefing.adapters.llm.base import LlmClassifier
-from daily_stock_briefing.domain.models import SymbolBriefing
+from daily_stock_briefing.domain.models import CompanyDisclosure, SymbolBriefing
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +163,89 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             return None
         return None
 
+    def translate_company_disclosures(
+        self,
+        disclosures: list[CompanyDisclosure],
+    ) -> list[CompanyDisclosure]:
+        targets = [
+            (index, disclosure)
+            for index, disclosure in enumerate(disclosures)
+            if disclosure.summary and not _contains_korean(disclosure.summary)
+        ]
+        if not targets:
+            return disclosures
+
+        payload = {
+            "model": self._model,
+            "temperature": 0.1,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 투자 브리핑 편집자입니다. 회사 공식 보도자료 요약을 "
+                        "자연스러운 한국어 한 문장으로 번역하세요. 숫자, 회사명, 제품명, "
+                        "고유명사는 보존하고 새 사실을 추가하지 마세요. JSON만 반환하세요."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "items": [
+                                {
+                                    "index": index,
+                                    "title": disclosure.title,
+                                    "summary": (disclosure.summary or "")[:1200],
+                                }
+                                for index, disclosure in targets
+                            ],
+                            "instruction": (
+                                "Return JSON shaped as "
+                                '{"summaries":[{"index":0,"summary_ko":"한국어 번역"}]}.'
+                            ),
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+        }
+        try:
+            self._respect_rate_limit()
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.post(
+                    f"{self._base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self._api_key}"},
+                    json=payload,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception as exc:
+            logger.warning("LLM company disclosure translation failed: %s", exc)
+            return disclosures
+
+        parsed = _extract_json_content(data)
+        summaries = parsed.get("summaries") if parsed else None
+        if not isinstance(summaries, list):
+            return disclosures
+
+        translations: dict[int, str] = {}
+        for item in summaries:
+            if not isinstance(item, dict):
+                continue
+            index = item.get("index")
+            summary = item.get("summary_ko")
+            if isinstance(index, int) and isinstance(summary, str) and summary.strip():
+                translations[index] = summary.strip()
+        if not translations:
+            return disclosures
+
+        out = [*disclosures]
+        for index, summary in translations.items():
+            if 0 <= index < len(out):
+                out[index] = out[index].model_copy(update={"summary": summary})
+        return out
+
     def _respect_rate_limit(self) -> None:
         if self._min_interval_seconds <= 0:
             return
@@ -247,3 +330,7 @@ def _extract_json_content(data: Any) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
+
+
+def _contains_korean(text: str) -> bool:
+    return any("\uac00" <= char <= "\ud7a3" for char in text)

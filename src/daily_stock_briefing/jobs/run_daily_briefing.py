@@ -261,6 +261,10 @@ def main(argv: list[str] | None = None) -> int:
                 item,
                 company_press_provider,
             )
+            if llm_classifier is not None and company_disclosures:
+                company_disclosures = llm_classifier.translate_company_disclosures(
+                    company_disclosures
+                )
         except Exception as exc:  # pragma: no cover - defensive job boundary
             warnings.append(f"{item.ticker}: company disclosures unavailable ({exc})")
             company_disclosures = []
