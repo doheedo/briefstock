@@ -1,11 +1,4 @@
 watchlist:
-  - ticker: 012700.KQ
-    name: 리드코프
-    market: KR
-    group: kr_bio
-    thesis: 디케이마린, 엘씨대부, 배당여력 관련 주요 이슈 추적
-    keywords: [리드코프, 디케이마린, 엘씨대부, 배당]
-    source_priority: [filings, news, price]
   - ticker: 310200.KQ
     name: 애니플러스
     market: KR
@@ -83,13 +76,6 @@ watchlist:
     group: fintech_platform
     thesis: 핀테크 대출 플랫폼의 신용 품질과 예금 조달력 추적
     keywords: [LendingClub, credit, deposits, loan originations]
-    source_priority: [news, filings, price]
-  - ticker: AFRM
-    name: Affirm
-    market: US
-    group: fintech_platform
-    thesis: BNPL 성장성과 LendingClub, Upstart 비교 맥락 추적
-    keywords: [Affirm, BNPL, credit, guidance]
     source_priority: [news, filings, price]
   - ticker: UPST
     name: Upstart
