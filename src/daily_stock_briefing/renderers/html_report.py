@@ -129,7 +129,7 @@ PAGE = Environment(autoescape=select_autoescape(["html", "xml"])).from_string(
       {% for disclosure in briefing.company_disclosures %}
       <p><strong>{{ disclosure.title }}</strong>
       <span class="muted">(<a href="{{ disclosure.url }}" target="_blank" rel="noopener">{{ "IR 덱" if disclosure.kind == "ir_deck" else "원문" }}</a>)</span>
-      {% if disclosure.kind == "earnings" and disclosure.summary %}
+      {% if disclosure.summary %}
       {{ disclosure.summary }}
       {% endif %}
       </p>

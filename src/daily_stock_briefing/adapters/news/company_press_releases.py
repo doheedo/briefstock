@@ -18,8 +18,11 @@ EARNINGS_TERMS = (
 )
 NON_EARNINGS_RESULTS_TERMS = ("results of voting", "voting for directors")
 IR_DECK_TERMS = (
+    "earnings presentation",
+    "analyst presentation",
     "investor presentation",
     "presentation deck",
+    "presentation.pdf",
     "ir deck",
     "investor deck",
     "webcast",
@@ -59,14 +62,15 @@ class CompanyPressReleaseProvider:
         normalized = [normalize_press_release(release) for release in releases]
         unique = dedupe_press_releases(normalized)
         bulk_upsert_press_releases(self._db_path, unique)
-        return [
-            CompanyDisclosure(
-                kind=_disclosure_kind(release.title, release.url),
-                title=release.title,
-                url=release.url,
-                summary=release.summary
-                if _disclosure_kind(release.title, release.url) == "earnings"
-                else None,
+        disclosures: list[CompanyDisclosure] = []
+        for release in unique:
+            kind = _disclosure_kind(release.title, release.url)
+            disclosures.append(
+                CompanyDisclosure(
+                    kind=kind,
+                    title=release.title,
+                    url=release.url,
+                    summary=release.summary if kind != "ir_deck" else None,
+                )
             )
-            for release in unique
-        ]
+        return disclosures

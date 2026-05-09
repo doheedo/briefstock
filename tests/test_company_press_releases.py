@@ -38,11 +38,29 @@ def test_company_press_provider_stores_releases_and_keeps_decks_link_only(
             PressRelease.from_raw(
                 ticker="CSU.TO",
                 company_name="Constellation Software",
+                title="Constellation Software Announces Acquisition",
+                url="https://www.csisoftware.com/acquisition",
+                source_name="csisoftware.com",
+                source_type="official_html",
+                summary="The company agreed to acquire a vertical market software business.",
+            ),
+            PressRelease.from_raw(
+                ticker="CSU.TO",
+                company_name="Constellation Software",
                 title="Investor Presentation Deck",
                 url="https://www.csisoftware.com/investor-presentation.pdf",
                 source_name="csisoftware.com",
                 source_type="official_html",
                 summary="Do not show this.",
+            ),
+            PressRelease.from_raw(
+                ticker="CSU.TO",
+                company_name="Constellation Software",
+                title="Q4FY26 Earnings Presentation",
+                url="https://www.csisoftware.com/q4fy26-earnings-presentation.pdf",
+                source_name="csisoftware.com",
+                source_type="official_html",
+                summary="Do not show this either.",
             ),
         ],
     )
@@ -51,9 +69,16 @@ def test_company_press_provider_stores_releases_and_keeps_decks_link_only(
         db_path=tmp_path / "press.sqlite"
     ).fetch_disclosures(_item())
 
-    assert [d.kind for d in disclosures] == ["earnings", "ir_deck"]
+    assert [d.kind for d in disclosures] == [
+        "earnings",
+        "press_release",
+        "ir_deck",
+        "ir_deck",
+    ]
     assert "Total revenue increased 12%" in disclosures[0].summary
-    assert disclosures[1].summary is None
+    assert "vertical market software" in disclosures[1].summary
+    assert disclosures[2].summary is None
+    assert disclosures[3].summary is None
 
 
 def test_report_builder_turns_earnings_press_release_into_event() -> None:
@@ -96,6 +121,12 @@ def test_html_report_renders_press_release_summary_and_deck_link(tmp_path) -> No
                 summary="Revenue increased 12% and operating cash flow improved.",
             ),
             CompanyDisclosure(
+                kind="press_release",
+                title="Constellation Software Announces Acquisition",
+                url="https://www.csisoftware.com/acquisition",
+                summary="The company agreed to acquire a vertical market software business.",
+            ),
+            CompanyDisclosure(
                 kind="ir_deck",
                 title="Investor Presentation Deck",
                 url="https://www.csisoftware.com/deck.pdf",
@@ -117,5 +148,6 @@ def test_html_report_renders_press_release_summary_and_deck_link(tmp_path) -> No
     output = path.read_text(encoding="utf-8")
     assert "기업 홈페이지 공시" in output
     assert "Revenue increased 12%" in output
+    assert "vertical market software business" in output
     assert "Investor Presentation Deck" in output
     assert "https://www.csisoftware.com/deck.pdf" in output
