@@ -99,6 +99,18 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
         == "https://www.cenovus.com/Investors/Financial-results-and-reports"
     )
     assert by_ticker["BFF.MI"].press_release_url == "https://investor.bff.com/en/press-releases"
+    assert (
+        by_ticker["TOI.V"].press_release_url
+        == "https://news.google.com/rss/search?q=%22Topicus%22+%22financial+results%22+OR+%22press+release%22+when%3A60d&hl=en-CA&gl=CA&ceid=CA:en"
+    )
+    assert (
+        by_ticker["GOOG"].press_release_url
+        == "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=GOOG&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom"
+    )
+    assert (
+        by_ticker["ADYEN.AS"].press_release_url
+        == "https://news.google.com/rss/search?q=%22Adyen%22+%22financial+results%22+OR+%22press+release%22+when%3A60d&hl=en-NL&gl=NL&ceid=NL:en"
+    )
 
 
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:

@@ -184,6 +184,37 @@ def test_company_press_provider_uses_rss_urls(tmp_path, monkeypatch) -> None:
     assert disclosures[0].title == "Uber Announces Results for First Quarter 2026"
 
 
+def test_company_press_provider_uses_sec_atom_urls(tmp_path, monkeypatch) -> None:
+    item = _item().model_copy(
+        update={
+            "ticker": "GOOG",
+            "press_release_url": (
+                "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany"
+                "&CIK=GOOG&type=8-K&output=atom"
+            ),
+        }
+    )
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.company_press_releases.collect_rss",
+        lambda ticker, company_name, url: [
+            PressRelease.from_raw(
+                ticker=ticker,
+                company_name=company_name,
+                title="8-K - Current report",
+                url="https://www.sec.gov/Archives/edgar/data/1652044/report.html",
+                source_name=url,
+                source_type="official_rss",
+            )
+        ],
+    )
+
+    disclosures = CompanyPressReleaseProvider(
+        db_path=tmp_path / "press.sqlite"
+    ).fetch_disclosures(item)
+
+    assert disclosures[0].title == "8-K - Current report"
+
+
 def test_html_report_renders_press_release_summary_and_deck_link(tmp_path) -> None:
     item = _item()
     briefing = build_symbol_briefing(

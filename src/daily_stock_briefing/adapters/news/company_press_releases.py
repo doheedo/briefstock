@@ -53,7 +53,12 @@ def _disclosure_kind(title: str, url: str) -> str:
 
 def _is_rss_url(url: str) -> bool:
     lowered = url.lower()
-    return "/rss/" in lowered or lowered.endswith(".rss") or lowered.endswith(".xml")
+    return (
+        "/rss/" in lowered
+        or "output=atom" in lowered
+        or lowered.endswith(".rss")
+        or lowered.endswith(".xml")
+    )
 
 
 class CompanyPressReleaseProvider:

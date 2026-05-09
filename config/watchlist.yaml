@@ -27,6 +27,7 @@ watchlist:
     group: data_info
     thesis: 유럽 VMS 퀄리티, 인수 적정가 밸류, 통합 시너지 모멘텀 추적
     keywords: [Topicus, VMS, TSS, acquisition]
+    press_release_url: https://news.google.com/rss/search?q=%22Topicus%22+%22financial+results%22+OR+%22press+release%22+when%3A60d&hl=en-CA&gl=CA&ceid=CA:en
     source_priority: [news, filings, price]
   - ticker: RELX
     name: RELX plc ADR
@@ -42,6 +43,7 @@ watchlist:
     group: data_info
     thesis: UpToDate, 의료 및 규제 콘텐츠 해자 추적
     keywords: [Wolters Kluwer, UpToDate, healthcare, regulatory]
+    press_release_url: https://news.google.com/rss/search?q=%22Wolters+Kluwer%22+%22press+release%22+OR+%22financial+results%22+when%3A60d&hl=en-NL&gl=NL&ceid=NL:en
     source_priority: [news, filings, price]
   - ticker: TRI
     name: Thomson Reuters
@@ -105,6 +107,7 @@ watchlist:
     group: industrial_luxury
     thesis: 명품 브랜드 경쟁력과 상장사 이벤트 추적
     keywords: [Porsche AG, luxury, brand, automotive]
+    press_release_url: https://news.google.com/rss/search?q=%22Porsche+AG%22+%22press+release%22+OR+%22Quartalsergebnis%22+when%3A60d&hl=de&gl=DE&ceid=DE:de
     source_priority: [news, filings, price]
   - ticker: 002821.SZ
     name: Asymchem
@@ -112,6 +115,7 @@ watchlist:
     group: kr_bio
     thesis: CDMO 산업과 삼성바이오로직스 비교 맥락 추적
     keywords: [Asymchem, CDMO, pharma, China]
+    press_release_url: https://news.google.com/rss/search?q=%22Asymchem%22+%22financial+results%22+OR+%22announcement%22+when%3A60d&hl=en&gl=US&ceid=US:en
     source_priority: [news, filings, price]
   - ticker: ^VIX
     name: Cboe Volatility Index (VIX)
@@ -182,6 +186,7 @@ watchlist:
     group: fintech_platform
     thesis: 저비용 결제망 퀄리티, 멀티플 합리성 밸류, 송금량 모멘텀 추적
     keywords: [Wise, remittance, cross-border payments, pricing]
+    press_release_url: https://news.google.com/rss/search?q=%22Wise+plc%22+%22financial+results%22+OR+%22trading+update%22+when%3A60d&hl=en-GB&gl=GB&ceid=GB:en
     source_priority: [news, filings, price]
   - ticker: VFC
     name: V.F. Corporation
@@ -205,6 +210,7 @@ watchlist:
     group: data_info
     thesis: 검색·클라우드 퀄리티, 현금창출 밸류, AI 수익화 모멘텀 추적
     keywords: [Alphabet, Google, search ads, GCP, AI]
+    press_release_url: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=GOOG&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom
     source_priority: [news, filings, price]
   - ticker: 6862.HK
     name: Haidilao International Holding Ltd.
@@ -212,6 +218,7 @@ watchlist:
     group: industrial_luxury
     thesis: 운영효율 퀄리티, 회복국면 밸류, 객단가·회전율 모멘텀 추적
     keywords: [Haidilao, "6862", China restaurant, expansion, margin]
+    press_release_url: https://news.google.com/rss/search?q=%22Haidilao%22+%22results%22+OR+%22announcement%22+when%3A60d&hl=en-HK&gl=HK&ceid=HK:en
     source_priority: [news, filings, price]
   - ticker: META
     name: Meta Platforms Inc Class A
@@ -243,6 +250,7 @@ watchlist:
     group: data_info
     thesis: 딜소싱 퀄리티, NAV 할인 밸류, 엑시트 성과 모멘텀 추적
     keywords: [Integral, private equity, Japan, portfolio]
+    press_release_url: https://news.google.com/rss/search?q=%22Integral+Corporation%22+%225842%22+%22IR%22+when%3A90d&hl=ja&gl=JP&ceid=JP:ja
     source_priority: [news, filings, price]
   - ticker: ADYEN.AS
     name: Adyen NV
@@ -250,6 +258,7 @@ watchlist:
     group: fintech_platform
     thesis: 엔터프라이즈 결제 퀄리티, 성장조정 밸류, TPV·테이크레이트 모멘텀 추적
     keywords: [Adyen, payments, enterprise, TPV, margin]
+    press_release_url: https://news.google.com/rss/search?q=%22Adyen%22+%22financial+results%22+OR+%22press+release%22+when%3A60d&hl=en-NL&gl=NL&ceid=NL:en
     source_priority: [news, filings, price]
   - ticker: Z
     name: Zillow Group, Inc. Class C
