@@ -68,6 +68,10 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
     )
     assert by_ticker["KSPI"].press_release_url == "https://ir.kaspi.kz/news/"
     assert by_ticker["UMG.AS"].press_release_url == "https://www.universalmusic.com/news/"
+    assert (
+        by_ticker["NVO"].press_release_url
+        == "https://www.novonordisk.com/news-and-media/latest-news.html"
+    )
 
 
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:

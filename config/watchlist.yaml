@@ -223,6 +223,7 @@ watchlist:
     group: kr_bio
     thesis: GLP-1 파이프라인 퀄리티, 성장 프리미엄 밸류, 처방 모멘텀 추적
     keywords: [Novo Nordisk, obesity, diabetes, GLP-1]
+    press_release_url: https://www.novonordisk.com/news-and-media/latest-news.html
     source_priority: [news, filings, price]
   - ticker: 5842.T
     name: Integral Corporation

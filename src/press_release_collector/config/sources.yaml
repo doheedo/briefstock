@@ -95,3 +95,11 @@ companies:
     wire_queries:
       - "Universal Music Group"
       - "UMG"
+  - ticker: NVO
+    company_name: Novo Nordisk A/S
+    official_sources:
+      - type: html
+        url: "https://www.novonordisk.com/news-and-media/latest-news.html"
+    wire_queries:
+      - "Novo Nordisk"
+      - "NVO"
