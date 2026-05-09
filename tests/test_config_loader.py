@@ -36,6 +36,15 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
         by_ticker["CSU.TO"].press_release_url
         == "https://www.csisoftware.com/category/press-releases/"
     )
+    assert (
+        by_ticker["Z"].press_release_url
+        == "https://zillowgroup.mediaroom.com/press-releases"
+    )
+    assert by_ticker["RBLX"].press_release_url == "https://about.roblox.com/newsroom"
+    assert (
+        by_ticker["HDB"].press_release_url
+        == "https://www.hdfc.bank.in/about-us/investor-relations/financial-results"
+    )
 
 
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:

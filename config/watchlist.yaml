@@ -251,6 +251,7 @@ watchlist:
     group: data_info
     thesis: 미국 주택 데이터·마켓플레이스 퀄리티, 거래 회복 밸류, 모기지·렌탈 모멘텀 추적
     keywords: [Zillow, Z, real estate, mortgage, rentals]
+    press_release_url: https://zillowgroup.mediaroom.com/press-releases
     source_priority: [news, filings, price]
   - ticker: RBLX
     name: Roblox Corporation
@@ -258,6 +259,7 @@ watchlist:
     group: data_info
     thesis: UGC 게임 플랫폼 퀄리티, 예약매출 대비 밸류, DAU·시간당 결제 모멘텀 추적
     keywords: [Roblox, RBLX, bookings, DAU, user generated content]
+    press_release_url: https://about.roblox.com/newsroom
     source_priority: [news, filings, price]
   - ticker: HDB
     name: HDFC Bank Limited ADR
@@ -265,6 +267,7 @@ watchlist:
     group: fintech_platform
     thesis: 인도 민간은행 퀄리티, 예대마진·자산건전성 밸류, 대출성장 모멘텀 추적
     keywords: [HDFC Bank, HDB, India bank, ADR, loan growth]
+    press_release_url: https://www.hdfc.bank.in/about-us/investor-relations/financial-results
     source_priority: [news, filings, price]
   - ticker: IBN
     name: ICICI Bank Limited ADR

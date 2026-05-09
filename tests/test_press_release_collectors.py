@@ -5,9 +5,10 @@ from press_release_collector.core.normalize import normalize_press_release
 
 
 class _Response:
-    def __init__(self, text: str) -> None:
+    def __init__(self, text: str, url: str = "") -> None:
         self.text = text
         self.content = text.encode("utf-8")
+        self.url = url
 
     def raise_for_status(self) -> None:
         return None
@@ -17,6 +18,7 @@ class _Client:
     def __init__(self, pages: dict[str, str], requests: list[str], **kwargs) -> None:
         self._pages = pages
         self._requests = requests
+        self.headers = kwargs.get("headers") or {}
 
     def __enter__(self):
         return self
@@ -26,7 +28,7 @@ class _Client:
 
     def get(self, url: str, **kwargs) -> _Response:
         self._requests.append(url)
-        return _Response(self._pages[url])
+        return _Response(self._pages[url], url=url)
 
 
 def test_html_collector_prefers_internal_press_release_links(monkeypatch) -> None:
@@ -69,6 +71,87 @@ def test_html_collector_prefers_internal_press_release_links(monkeypatch) -> Non
     assert releases[1].title == "Investor Deck"
     assert releases[1].url == "https://www.csisoftware.com/investor-deck.pdf"
     assert releases[1].summary is None
+
+
+def test_html_collector_uses_clear_user_agent_and_skips_self_fragments(
+    monkeypatch,
+) -> None:
+    listing_url = "https://ir.roblox.com/news/default.aspx"
+    release_url = "https://ir.roblox.com/news/press-release-details/2026/results.aspx"
+    clients: list[_Client] = []
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <main>
+            <a href="#main-content">News</a>
+            <article><h2><a href="{release_url}">Roblox Reports Financial Results</a></h2></article>
+          </main>
+        </body></html>
+        """,
+        release_url: """
+        <html><body><main>
+          <h1>Roblox Reports Financial Results</h1>
+          <time datetime="2026-05-08"></time>
+          <p>Revenue and bookings increased during the quarter.</p>
+        </main></body></html>
+        """,
+    }
+    requests: list[str] = []
+
+    def _client(**kwargs):
+        client = _Client(pages, requests, **kwargs)
+        clients.append(client)
+        return client
+
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        _client,
+    )
+
+    releases = collect_html(
+        ticker="RBLX",
+        company_name="Roblox",
+        url=listing_url,
+    )
+
+    assert requests == [listing_url, release_url]
+    assert clients[0].headers["User-Agent"].startswith("briefstock-press-release-collector")
+    assert len(releases) == 1
+    assert releases[0].title == "Roblox Reports Financial Results"
+
+
+def test_html_collector_does_not_match_press_inside_unrelated_words(
+    monkeypatch,
+) -> None:
+    listing_url = "https://www.hdfcbank.com/personal/about-us/investor-relations/financial-results"
+    release_url = "https://www.hdfcbank.com/content/results/press-release-q1.pdf"
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <main>
+            <a href="/xpressway/insta-services/update-nominee">Update Nominee</a>
+            <a href="{release_url}"></a>
+          </main>
+        </body></html>
+        """,
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+
+    releases = collect_html(
+        ticker="HDB",
+        company_name="HDFC Bank",
+        url=listing_url,
+    )
+
+    assert requests == [listing_url]
+    assert len(releases) == 1
+    assert releases[0].url == release_url
+    assert releases[0].title == "Press Release Q1"
+    assert releases[0].summary is None
 
 
 def test_html_collector_uses_url_date_when_page_has_no_time(monkeypatch) -> None:

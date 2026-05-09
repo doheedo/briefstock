@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import urljoin, urlsplit
+from pathlib import PurePosixPath
+from urllib.parse import unquote, urljoin, urlsplit
 
 import httpx
 from bs4 import BeautifulSoup
@@ -17,6 +18,10 @@ except ImportError:  # pragma: no cover - local fallback path
 
 logger = logging.getLogger(__name__)
 
+REQUEST_HEADERS = {
+    "User-Agent": "briefstock-press-release-collector/0.1 (+https://github.com/doheedo/briefstock)",
+}
+
 LINK_TERMS = (
     "news",
     "newsroom",
@@ -27,8 +32,27 @@ LINK_TERMS = (
     "announcement",
     "results",
 )
-SKIP_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png", ".zip")
-DECK_TERMS = ("deck", "presentation", "investor")
+SKIP_EXTENSIONS = (".jpg", ".jpeg", ".png", ".zip")
+LINK_ONLY_PDF_TERMS = (
+    "deck",
+    "presentation",
+    "investor",
+    "press",
+    "release",
+    "results",
+    "earnings",
+)
+GENERIC_DETAIL_TITLES = {"news", "press releases", "press release", "investor relations"}
+SKIP_LINK_TERMS = (
+    "email-alerts",
+    "in-the-news",
+    "board-of-directors",
+    "investor-charter",
+    "/about-us/investor-relations",
+    "investor-faqs",
+    "contacts",
+    "news-room",
+)
 
 
 def collect_html(
@@ -40,13 +64,21 @@ def collect_html(
     max_items: int = 8,
 ) -> list[PressRelease]:
     try:
-        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+        with httpx.Client(
+            timeout=timeout,
+            follow_redirects=True,
+            headers=REQUEST_HEADERS,
+        ) as client:
             response = client.get(url)
             response.raise_for_status()
-            candidates = _candidate_links(response.text, url, max_items=max_items)
+            candidates = _candidate_links(
+                response.text,
+                str(response.url),
+                max_items=max_items,
+            )
             releases: list[PressRelease] = []
             for link, fallback_title in candidates:
-                if _is_link_only_deck(link, fallback_title):
+                if _is_link_only_pdf(link, fallback_title):
                     releases.append(
                         PressRelease.from_raw(
                             ticker=ticker,
@@ -98,18 +130,18 @@ def _candidate_links(
         title = clean_spaces(anchor.get_text(" ", strip=True))
         href = str(anchor.get("href") or "")
         link = urljoin(base_url, href)
+        title = title or _title_from_url(link)
         parts = urlsplit(link)
         lowered = f"{title} {parts.path}".lower()
         if parts.netloc.lower() != base_host:
             continue
-        if parts.path.lower().endswith(SKIP_EXTENSIONS) and not _is_link_only_deck(
-            link,
-            title,
-        ):
+        if _should_skip_link(link):
             continue
-        if not any(term in lowered for term in LINK_TERMS):
+        if parts.path.lower().endswith(SKIP_EXTENSIONS):
             continue
-        if link in seen or link.rstrip("/") == base_url.rstrip("/"):
+        if not _has_link_term(lowered):
+            continue
+        if link in seen or _same_document(link, base_url):
             continue
         seen.add(link)
         out.append((link, title))
@@ -118,10 +150,44 @@ def _candidate_links(
     return out
 
 
-def _is_link_only_deck(url: str, title: str) -> bool:
+def _has_link_term(text: str) -> bool:
+    return any(
+        re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", text)
+        for term in LINK_TERMS
+    )
+
+
+def _title_from_url(url: str) -> str:
+    stem = unquote(PurePosixPath(urlsplit(url).path).stem)
+    title = re.sub(r"[-_]+", " ", stem)
+    return clean_spaces(title).title()
+
+
+def _should_skip_link(url: str) -> bool:
+    lowered = url.lower()
+    return any(term in lowered for term in SKIP_LINK_TERMS)
+
+
+def _same_document(link: str, base_url: str) -> bool:
+    link_parts = urlsplit(link)
+    base_parts = urlsplit(base_url)
+    return (
+        link_parts.scheme.lower(),
+        link_parts.netloc.lower(),
+        link_parts.path.rstrip("/"),
+        link_parts.query,
+    ) == (
+        base_parts.scheme.lower(),
+        base_parts.netloc.lower(),
+        base_parts.path.rstrip("/"),
+        base_parts.query,
+    )
+
+
+def _is_link_only_pdf(url: str, title: str) -> bool:
     lowered = f"{title} {url}".lower()
     return urlsplit(url).path.lower().endswith(".pdf") and any(
-        term in lowered for term in DECK_TERMS
+        term in lowered for term in LINK_ONLY_PDF_TERMS
     )
 
 
@@ -161,7 +227,7 @@ def _title(soup: BeautifulSoup) -> str | None:
         node = soup.select_one(selector)
         if node:
             text = clean_spaces(node.get_text(" ", strip=True))
-            if text:
+            if text and text.lower() not in GENERIC_DETAIL_TITLES:
                 return text
     return None
 

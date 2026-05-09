@@ -7,3 +7,27 @@ companies:
     wire_queries:
       - "Constellation Software"
       - "CSU.TO"
+  - ticker: Z
+    company_name: Zillow Group, Inc.
+    official_sources:
+      - type: html
+        url: "https://zillowgroup.mediaroom.com/press-releases"
+    wire_queries:
+      - "Zillow Group"
+      - "Zillow"
+  - ticker: RBLX
+    company_name: Roblox Corporation
+    official_sources:
+      - type: html
+        url: "https://about.roblox.com/newsroom"
+    wire_queries:
+      - "Roblox Corporation"
+      - "Roblox"
+  - ticker: HDB
+    company_name: HDFC Bank Limited
+    official_sources:
+      - type: html
+        url: "https://www.hdfc.bank.in/about-us/investor-relations/financial-results"
+    wire_queries:
+      - "HDFC Bank"
+      - "HDB"
