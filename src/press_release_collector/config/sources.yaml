@@ -1,177 +1,302 @@
-companies:
+press_release_sources:
   - ticker: CSU.TO
-    company_name: Constellation Software
-    official_sources:
-      - type: html
-        url: "https://www.csisoftware.com/category/press-releases/"
-    wire_queries:
-      - "Constellation Software"
-      - "CSU.TO"
-  - ticker: Z
-    company_name: Zillow Group, Inc.
-    official_sources:
-      - type: html
-        url: "https://zillowgroup.mediaroom.com/press-releases"
-    wire_queries:
-      - "Zillow Group"
-      - "Zillow"
-  - ticker: RBLX
-    company_name: Roblox Corporation
-    official_sources:
-      - type: html
-        url: "https://about.roblox.com/newsroom"
-    wire_queries:
-      - "Roblox Corporation"
-      - "Roblox"
-  - ticker: HDB
-    company_name: HDFC Bank Limited
-    official_sources:
-      - type: html
-        url: "https://www.hdfc.bank.in/about-us/investor-relations/financial-results"
-    wire_queries:
-      - "HDFC Bank"
-      - "HDB"
-  - ticker: IBN
-    company_name: ICICI Bank Limited
-    official_sources:
-      - type: html
-        url: "https://www.icici.bank.in/about-us/invest-relations"
-    wire_queries:
-      - "ICICI Bank"
-      - "IBN"
-  - ticker: TRI
-    company_name: Thomson Reuters
-    official_sources:
-      - type: html
-        url: "https://ir.thomsonreuters.com/news-and-events/press-releases"
-    wire_queries:
-      - "Thomson Reuters"
-      - "TRI"
-  - ticker: WLK
-    company_name: Westlake
-    official_sources:
-      - type: html
-        url: "https://investors.westlake.com/news-events/news-releases"
-    wire_queries:
-      - "Westlake"
-      - "WLK"
-  - ticker: UPST
-    company_name: Upstart
-    official_sources:
-      - type: html
-        url: "https://ir.upstart.com/news-and-events/news-releases"
-    wire_queries:
-      - "Upstart"
-      - "UPST"
-  - ticker: TME
-    company_name: Tencent Music Entertainment
-    official_sources:
-      - type: html
-        url: "https://ir.tencentmusic.com/Press-Releases"
-    wire_queries:
-      - "Tencent Music Entertainment"
-      - "TME"
-  - ticker: VFC
-    company_name: V.F. Corporation
-    official_sources:
-      - type: html
-        url: "https://www.vfc.com/investors/news-events-presentations/press-releases"
-    wire_queries:
-      - "VF Corporation"
-      - "VFC"
-  - ticker: KSPI
-    company_name: Kaspi.kz
-    official_sources:
-      - type: html
-        url: "https://ir.kaspi.kz/news/"
-    wire_queries:
-      - "Kaspi.kz"
-      - "KSPI"
-  - ticker: UMG.AS
-    company_name: Universal Music Group N.V.
-    official_sources:
-      - type: html
-        url: "https://www.universalmusic.com/news/"
-    wire_queries:
-      - "Universal Music Group"
-      - "UMG"
-  - ticker: NVO
-    company_name: Novo Nordisk A/S
-    official_sources:
-      - type: html
-        url: "https://www.novonordisk.com/news-and-media/latest-news.html"
-    wire_queries:
-      - "Novo Nordisk"
-      - "NVO"
-  - ticker: LC
-    company_name: LendingClub
-    official_sources:
-      - type: rss
-        url: "https://ir.lendingclub.com/rss/pressrelease.aspx"
-    wire_queries:
-      - "LendingClub"
-      - "LC"
-  - ticker: QSR
-    company_name: Restaurant Brands International Inc.
-    official_sources:
-      - type: rss
-        url: "https://www.rbi.com/rss/pressrelease.aspx"
-    wire_queries:
-      - "Restaurant Brands International"
-      - "QSR"
-  - ticker: PINS
-    company_name: Pinterest, Inc.
-    official_sources:
-      - type: rss
-        url: "https://investor.pinterestinc.com/rss/pressrelease.aspx"
-    wire_queries:
-      - "Pinterest"
-      - "PINS"
-  - ticker: UBER
-    company_name: Uber Technologies, Inc.
-    official_sources:
-      - type: rss
-        url: "https://investor.uber.com/rss/PressRelease.aspx"
-    wire_queries:
-      - "Uber Technologies"
-      - "UBER"
-  - ticker: AMZN
-    company_name: Amazon.com, Inc.
-    official_sources:
-      - type: rss
-        url: "https://ir.aboutamazon.com/rss/pressrelease.aspx"
-    wire_queries:
-      - "Amazon.com"
-      - "AMZN"
-  - ticker: META
-    company_name: Meta Platforms, Inc.
-    official_sources:
-      - type: rss
-        url: "https://investor.atmeta.com/rss/pressrelease.aspx"
-    wire_queries:
-      - "Meta Platforms"
-      - "META"
+    name: Constellation Software
+    priority_1:
+      - https://www.csisoftware.com/category/press-releases
+      - https://www.csisoftware.com/category/corporate-financial
+    priority_2:
+      - https://www.globenewswire.com/en/search/organization/Constellation%2520Software%2520Inc%C2%A7
+    fallback_query: '"Constellation Software" "press release" OR "news release"'
+
+  - ticker: TOI.V
+    name: Topicus.com
+    priority_1:
+      - https://topicus.com/investor-relations
+      - https://topicus.com/news
+    priority_2:
+      - https://www.globenewswire.com/en/search/organization/Topicus%C2%A7com%2520Inc%C2%A7
+    fallback_query: '"Topicus.com" "press release" OR "news release"'
+
   - ticker: RELX
-    company_name: RELX plc ADR
-    official_sources:
-      - type: rss
-        url: "https://www.relx.com/rss/press-releases"
-    wire_queries:
-      - "RELX"
-      - "RELX plc"
-  - ticker: CVE
-    company_name: Cenovus Energy Inc.
-    official_sources:
-      - type: html
-        url: "https://www.cenovus.com/Investors/Financial-results-and-reports"
-    wire_queries:
-      - "Cenovus Energy"
-      - "CVE"
+    name: RELX plc ADR
+    priority_1:
+      - https://www.relx.com/media/press-releases/archive
+      - https://www.relx.com/media/press-releases/year-2025
+    priority_2:
+      - https://www.relx.com/investors
+    fallback_query: '"RELX" "press release" site:relx.com'
+
+  - ticker: WKL.AS
+    name: Wolters Kluwer
+    priority_1:
+      - https://www.wolterskluwer.com/en/news
+      - https://www.wolterskluwer.com/en/investors
+    priority_2:
+      - https://www.prnewswire.com/news/wolters-kluwer/
+      - https://www.globenewswire.com/en/search/organization/Wolters%2520Kluwer%2520Global%2520Brand%2520B%C2%A7V%C2%A7
+    fallback_query: '"Wolters Kluwer" "press release"'
+
+  - ticker: TRI
+    name: Thomson Reuters
+    priority_1:
+      - https://ir.thomsonreuters.com/news-and-events/press-releases
+      - https://www.thomsonreuters.com/en/press-releases
+    fallback_query: '"Thomson Reuters" "press release"'
+
+  - ticker: HEPS
+    name: Hepsiburada
+    priority_1:
+      - https://investors.hepsiburada.com/en/news-and-events/press-release
+      - https://investors.hepsiburada.com/en/news-and-events/news
+    priority_2:
+      - https://www.globenewswire.com/en/search/organization/D-MARKET%2520Elektronik%2520Hizmetler%2520ve%2520Ticaret%2520A%C2%A7%C5%9E
+    fallback_query: '"Hepsiburada" "press release" OR "financial results"'
+
+  - ticker: KSPI
+    name: Kaspi.kz
+    priority_1:
+      - https://ir.kaspi.kz/news/
+      - https://ir.kaspi.kz/financial-information/
+    priority_2:
+      - https://www.globenewswire.com/en/search/organization/JSC%2520Kaspi%C2%A7kz
+    fallback_query: '"Kaspi.kz" "press release" OR "financial results"'
+
+  - ticker: WLK
+    name: Westlake
+    priority_1:
+      - https://investors.westlake.com/news-events/news-releases
+      - https://www.westlake.com/newsroom
+    priority_2:
+      - https://www.businesswire.com/
+    fallback_query: '"Westlake Corporation" "press release"'
+
+  - ticker: LC
+    name: LendingClub
+    priority_1:
+      - https://ir.lendingclub.com/news/default.aspx
+      - https://ir.lendingclub.com/financials/quarterly-results/default.aspx
+    priority_2:
+      - https://www.prnewswire.com/
+    fallback_query: '"LendingClub" "press release" site:ir.lendingclub.com'
+
+  - ticker: AFRM
+    name: Affirm
+    priority_1:
+      - https://investors.affirm.com/
+      - https://investors.affirm.com/news-events/newsroom
+      - https://investors.affirm.com/financial-information/quarterly-results
+    priority_2:
+      - https://www.businesswire.com/
+    fallback_query: '"Affirm Holdings" "press release" site:investors.affirm.com'
+
+  - ticker: UPST
+    name: Upstart
+    priority_1:
+      - https://ir.upstart.com/news-and-events/news-releases
+      - https://www.upstart.com/news/press-releases
+      - https://ir.upstart.com/financial-information/quarterly-results
+    priority_2:
+      - https://www.businesswire.com/
+    fallback_query: '"Upstart Holdings" "press release" site:ir.upstart.com'
+
+  - ticker: TME
+    name: Tencent Music Entertainment
+    priority_1:
+      - https://ir.tencentmusic.com/Press-Releases
+      - https://ir.tencentmusic.com/Financial-results
+    fallback_query: '"Tencent Music Entertainment" "press release"'
+
+  - ticker: P911.DE
+    name: Porsche AG
+    priority_1:
+      - https://investorrelations.porsche.com/en/financial-information/news-and-ad-hoc-announcements
+      - https://newsroom.porsche.com/en/press-releases.html
+      - https://investorrelations.porsche.com/en/financial-information/reports-and-presentations
+    fallback_query: '"Porsche AG" "press release" site:porsche.com'
+
+  - ticker: 002821.SZ
+    name: Asymchem
+    priority_1:
+      - https://www.asymchem.com/investor-relations
+      - https://www.asymchem.com/investors/announcements
+      - https://www.asymchem.com/resources/newsroom
+    fallback_query: '"Asymchem" "press release" OR "announcement"'
+
+  - ticker: ^VIX
+    name: Cboe Volatility Index
+    priority_1:
+      - https://www.cboe.com/us/indices/dashboard/vix/
+      - https://www.cboe.com/tradable-products/vix/
+      - https://ir.cboe.com/news/default.aspx
+    fallback_query: '"Cboe" "VIX" "press release"'
+    note: "기업이 아니라 지수. Cboe Global Markets의 VIX 관련 발표만 수집."
+
+  - ticker: UMG.AS
+    name: Universal Music Group
+    priority_1:
+      - https://investors.universalmusic.com/
+      - https://investors.universalmusic.com/reports/
+      - https://www.universalmusic.com/news/
+    fallback_query: '"Universal Music Group" "press release"'
+
+  - ticker: QSR
+    name: Restaurant Brands International
+    priority_1:
+      - https://www.rbi.com/English/investors/investor-home/default.aspx
+      - https://www.rbi.com/English/news/default.aspx
+    priority_2:
+      - https://www.prnewswire.com/
+    fallback_query: '"Restaurant Brands International" "press release"'
+
+  - ticker: PINS
+    name: Pinterest
+    priority_1:
+      - https://investor.pinterestinc.com/news-and-events/press-releases/default.aspx
+      - https://newsroom.pinterest.com/
+    fallback_query: '"Pinterest" "press release" site:pinterestinc.com OR site:newsroom.pinterest.com'
+
+  - ticker: NU
+    name: Nu Holdings / Nubank
+    priority_1:
+      - https://www.investidores.nu/en/press-releases/
+      - https://www.investidores.nu/financials/results-center/
+      - https://international.nubank.com.br/newsroom/
+    fallback_query: '"Nu Holdings" OR Nubank "press release"'
+
+  - ticker: BRK-B
+    name: Berkshire Hathaway
+    priority_1:
+      - https://www.berkshirehathaway.com/
+    priority_2:
+      - https://www.sec.gov/edgar/search/
+    fallback_query: '"Berkshire Hathaway" "news release" site:berkshirehathaway.com'
+
+  - ticker: UBER
+    name: Uber Technologies
+    priority_1:
+      - https://investor.uber.com/news-events/default.aspx
+      - https://www.uber.com/us/en/newsroom/
+    fallback_query: '"Uber Technologies" "press release" site:investor.uber.com OR site:uber.com'
+
+  - ticker: AMZN
+    name: Amazon.com
+    priority_1:
+      - https://ir.aboutamazon.com/news-release/default.aspx
+      - https://ir.aboutamazon.com/overview/default.aspx
+      - https://www.aboutamazon.com/news
+    fallback_query: '"Amazon.com" "press release" site:aboutamazon.com OR site:ir.aboutamazon.com'
+
+  - ticker: WISE.L
+    name: Wise PLC
+    priority_1:
+      - https://wise.com/owners/
+      - https://wise.com/owners/results-reports-presentations
+      - https://wise.com/gb/press
+    priority_2:
+      - https://www.londonstockexchange.com/news
+    fallback_query: '"Wise plc" "press release" OR "RNS"'
+
+  - ticker: VFC
+    name: V.F. Corporation
+    priority_1:
+      - https://www.vfc.com/investors/news-events-presentations/press-releases
+      - https://www.vfc.com/news
+    priority_2:
+      - https://www.businesswire.com/
+    fallback_query: '"VF Corporation" "press release" site:vfc.com'
+
   - ticker: BFF.MI
-    company_name: BFF Bank SpA
-    official_sources:
-      - type: html
-        url: "https://investor.bff.com/en/press-releases"
-    wire_queries:
-      - "BFF Bank"
-      - "BFF.MI"
+    name: BFF Bank
+    priority_1:
+      - https://investor.bff.com/press-releases
+      - https://www.bff.com/press-releases
+    fallback_query: '"BFF Bank" "press release" OR "price sensitive"'
+
+  - ticker: GOOG
+    name: Alphabet / Google
+    priority_1:
+      - https://abc.xyz/investor/
+      - https://abc.xyz/investor/news/default.aspx
+    fallback_query: '"Alphabet" "press release" site:abc.xyz'
+
+  - ticker: 6862.HK
+    name: Haidilao International Holding
+    priority_1:
+      - https://www.haidilao-inc.com/sg/investment/announcement
+    priority_2:
+      - https://www.hkexnews.hk/
+    fallback_query: '"Haidilao International" "announcement" OR "press release"'
+    note: "Super Hi International은 해외 하이디라오 운영사로 별도 회사. 6862.HK와 혼동 금지."
+
+  - ticker: META
+    name: Meta Platforms
+    priority_1:
+      - https://investor.atmeta.com/investor-news/default.aspx
+      - https://investor.atmeta.com/home/default.aspx
+    fallback_query: '"Meta Platforms" "press release" site:investor.atmeta.com'
+
+  - ticker: CVE
+    name: Cenovus Energy
+    priority_1:
+      - https://www.cenovus.com/News-and-Stories/News-releases
+    priority_2:
+      - https://www.sedarplus.ca/
+      - https://www.globenewswire.com/en/search/organization/Cenovus%2520Energy%2520Inc%C2%A7
+    fallback_query: '"Cenovus Energy" "news release"'
+
+  - ticker: NVO
+    name: Novo Nordisk
+    priority_1:
+      - https://www.novonordisk.com/news-and-media/news-and-ir-materials.html
+      - https://www.novonordisk.com/investors.html
+      - https://www.novonordisk.com/investors/financial-results.html
+    fallback_query: '"Novo Nordisk" "company announcement" OR "press release"'
+
+  - ticker: 5842.T
+    name: Integral Corporation
+    priority_1:
+      - https://www.integralkk.com/gr/en/ir/
+      - https://www.integralkk.com/gr/en/ir/news/
+    fallback_query: '"Integral Corporation" "IR News" "5842"'
+
+  - ticker: ADYEN.AS
+    name: Adyen
+    priority_1:
+      - https://investors.adyen.com/
+      - https://www.adyen.com/press-and-media/newsroom
+      - https://investors.adyen.com/events
+    fallback_query: '"Adyen" "press release" site:adyen.com'
+
+  - ticker: Z
+    name: Zillow Group
+    priority_1:
+      - https://investors.zillowgroup.com/investors/news-and-events/news/default.aspx
+      - https://zillowgroup.mediaroom.com/press-releases
+    fallback_query: '"Zillow Group" "press release" site:zillowgroup.com'
+
+  - ticker: RBLX
+    name: Roblox
+    priority_1:
+      - https://ir.roblox.com/news/default.aspx
+      - https://ir.roblox.com/financials/quarterly-results/default.aspx
+      - https://ir.roblox.com/overview/default.aspx
+    fallback_query: '"Roblox" "press release" site:ir.roblox.com'
+
+  - ticker: HDB
+    name: HDFC Bank ADR
+    priority_1:
+      - https://www.hdfc.bank.in/about-us/investor-relations
+      - https://www.hdfc.bank.in/about-us/investor-relations/financial-results
+      - https://www.hdfcbank.com/personal/about-us/news-room
+    priority_2:
+      - https://www.nseindia.com/companies-listing/corporate-filings-announcements?symbol=HDFCBANK&tabIndex=equity
+    fallback_query: '"HDFC Bank" "press release" OR "financial results"'
+
+  - ticker: IBN
+    name: ICICI Bank ADR
+    priority_1:
+      - https://www.icici.bank.in/about-us/invest-relations
+      - https://www.icici.bank.in/about-us/news-room
+    priority_2:
+      - https://www.nseindia.com/
+    fallback_query: '"ICICI Bank" "press release" OR "financial results"'

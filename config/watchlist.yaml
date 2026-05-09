@@ -57,6 +57,7 @@ watchlist:
     group: fintech_platform
     thesis: Kaspi.kz 지분 인수와 터키 전자상거래 이벤트 추적
     keywords: [Hepsiburada, Kaspi, Turkey, acquisition]
+    press_release_url: https://news.google.com/rss/search?q=%22Hepsiburada+Announces%22+%22Financial+Results%22+when%3A30d&hl=en-US&gl=US&ceid=US:en
     source_priority: [news, filings, price]
   - ticker: KSPI
     name: Kaspi.kz
@@ -149,6 +150,7 @@ watchlist:
     group: fintech_platform
     thesis: 디지털뱅킹 퀄리티, 고성장 대비 밸류, 고객·수익성 모멘텀 추적
     keywords: [Nu Holdings, Nubank, LatAm, digital bank, credit]
+    press_release_url: https://news.google.com/rss/search?q=%28%22Nu+Holdings%22+%22Reports%22+%22Financial+Results%22+OR+%22Nu+Holdings%22+%22Announces%22+%22Financial+Results%22%29+when%3A30d&hl=en-US&gl=US&ceid=US:en
     source_priority: [news, filings, price]
   - ticker: BRK-B
     name: Berkshire Hathaway Inc. Class B
@@ -156,6 +158,7 @@ watchlist:
     group: industrial_luxury
     thesis: 자본배분 퀄리티, 내재가치 할인 밸류, 영업이익 모멘텀 추적
     keywords: [Berkshire Hathaway, BRK.B, insurance float, capital allocation]
+    press_release_url: https://news.google.com/rss/search?q=%22Berkshire+Hathaway+Inc.%22+%22Earnings+Release%22+when%3A30d&hl=en-US&gl=US&ceid=US:en
     source_priority: [news, filings, price]
   - ticker: UBER
     name: Uber Technologies, Inc.

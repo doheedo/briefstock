@@ -11,6 +11,20 @@ from press_release_collector.core.models import PressRelease
 
 logger = logging.getLogger(__name__)
 
+GOOGLE_NEWS_NOISE_TERMS = (
+    "seeking alpha",
+    "investopedia",
+    "earnings preview",
+    "price target",
+    "stock to move",
+    "takes questions",
+    "class action",
+    "investor alert",
+    "shareholder investigation",
+    "lead plaintiff",
+    "law firm",
+)
+
 try:  # pragma: no cover - exercised when optional dependency is installed
     import feedparser
     FEEDPARSER_AVAILABLE = True
@@ -36,6 +50,8 @@ def collect_rss(ticker: str, company_name: str, url: str) -> list[PressRelease]:
         title = getattr(entry, "title", "") or ""
         link = getattr(entry, "link", "") or ""
         if not title or not link:
+            continue
+        if _is_google_news_noise(url, title):
             continue
         published_at = (
             getattr(entry, "published", None)
@@ -86,6 +102,8 @@ def _collect_rss_xml(ticker: str, company_name: str, url: str) -> list[PressRele
         link = _xml_text(item, "link")
         if not title or not link:
             continue
+        if _is_google_news_noise(url, title):
+            continue
         summary = _xml_text(item, "description")
         releases.append(
             PressRelease.from_raw(
@@ -109,6 +127,8 @@ def _collect_rss_xml(ticker: str, company_name: str, url: str) -> list[PressRele
         link_node = entry.find("atom:link", atom_ns)
         link = link_node.get("href", "") if link_node is not None else ""
         if not title or not link:
+            continue
+        if _is_google_news_noise(url, title):
             continue
         summary = _xml_text(entry, "atom:summary", atom_ns) or _xml_text(
             entry, "atom:content", atom_ns
@@ -135,3 +155,10 @@ def _xml_text(node: ET.Element, path: str, ns: dict[str, str] | None = None) -> 
     if child is None or child.text is None:
         return None
     return child.text.strip() or None
+
+
+def _is_google_news_noise(source_url: str, title: str) -> bool:
+    if "news.google.com/rss/search" not in source_url.lower():
+        return False
+    lowered = title.lower()
+    return any(term in lowered for term in GOOGLE_NEWS_NOISE_TERMS)

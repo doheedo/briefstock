@@ -486,5 +486,40 @@ def test_rss_collector_xml_fallback_resolves_relative_links(monkeypatch) -> None
     )
 
 
+def test_rss_collector_filters_google_news_noise(monkeypatch) -> None:
+    class _XmlResponse:
+        content = b"""
+        <rss><channel>
+          <item>
+            <title>Berkshire Hathaway Inc. First Quarter 2026 Earnings Release - ChartMill</title>
+            <link>https://news.google.com/rss/articles/good</link>
+          </item>
+          <item>
+            <title>Berkshire Hathaway: Greg Abel Wins Big In Q1 - Seeking Alpha</title>
+            <link>https://news.google.com/rss/articles/noise</link>
+          </item>
+        </channel></rss>
+        """
+
+        def raise_for_status(self) -> None:
+            return None
+
+    monkeypatch.setattr("press_release_collector.collectors.rss_collector.FEEDPARSER_AVAILABLE", False)
+    monkeypatch.setattr(
+        "press_release_collector.collectors.rss_collector.httpx.get",
+        lambda *args, **kwargs: _XmlResponse(),
+    )
+
+    releases = collect_rss(
+        "BRK-B",
+        "Berkshire Hathaway",
+        "https://news.google.com/rss/search?q=berkshire",
+    )
+
+    assert [release.title for release in releases] == [
+        "Berkshire Hathaway Inc. First Quarter 2026 Earnings Release - ChartMill"
+    ]
+
+
 def test_wire_collector_mvp_returns_empty_fallback() -> None:
     assert collect_wire("CSU.TO", "Constellation Software", ["Constellation Software"]) == []

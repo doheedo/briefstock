@@ -81,6 +81,18 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
     assert by_ticker["UBER"].press_release_url == "https://investor.uber.com/rss/PressRelease.aspx"
     assert by_ticker["AMZN"].press_release_url == "https://ir.aboutamazon.com/rss/pressrelease.aspx"
     assert by_ticker["META"].press_release_url == "https://investor.atmeta.com/rss/pressrelease.aspx"
+    assert (
+        by_ticker["HEPS"].press_release_url
+        == "https://news.google.com/rss/search?q=%22Hepsiburada+Announces%22+%22Financial+Results%22+when%3A30d&hl=en-US&gl=US&ceid=US:en"
+    )
+    assert (
+        by_ticker["NU"].press_release_url
+        == "https://news.google.com/rss/search?q=%28%22Nu+Holdings%22+%22Reports%22+%22Financial+Results%22+OR+%22Nu+Holdings%22+%22Announces%22+%22Financial+Results%22%29+when%3A30d&hl=en-US&gl=US&ceid=US:en"
+    )
+    assert (
+        by_ticker["BRK-B"].press_release_url
+        == "https://news.google.com/rss/search?q=%22Berkshire+Hathaway+Inc.%22+%22Earnings+Release%22+when%3A30d&hl=en-US&gl=US&ceid=US:en"
+    )
     assert by_ticker["RELX"].press_release_url == "https://www.relx.com/rss/press-releases"
     assert (
         by_ticker["CVE"].press_release_url
