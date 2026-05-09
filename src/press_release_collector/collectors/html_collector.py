@@ -207,7 +207,13 @@ def _parse_detail(
         if trafilatura is not None
         else None
     )
-    content = clean_spaces(extracted) if extracted else _paragraph_text(soup)
+    extracted_content = clean_spaces(extracted) if extracted else None
+    paragraph_content = _paragraph_text(soup)
+    content = (
+        paragraph_content
+        if _looks_like_navigation(extracted_content) and paragraph_content
+        else extracted_content or paragraph_content
+    )
     summary = _summary(content)
     return PressRelease.from_raw(
         ticker=ticker,
@@ -271,6 +277,22 @@ def _is_content_candidate(text: str) -> bool:
     if lowered in {"address", "constellation software inc."}:
         return False
     return True
+
+
+def _looks_like_navigation(text: str | None) -> bool:
+    if not text:
+        return False
+    lowered = text.lower()
+    nav_terms = (
+        "about us",
+        "management team",
+        "contact us",
+        "investor relations",
+        "board of directors",
+        "corporate documents",
+        "shareholder",
+    )
+    return sum(1 for term in nav_terms if term in lowered) >= 4
 
 
 def _summary(content: str | None) -> str | None:

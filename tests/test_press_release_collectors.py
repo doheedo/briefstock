@@ -1,4 +1,5 @@
 from press_release_collector.collectors.html_collector import collect_html
+from press_release_collector.collectors import html_collector
 from press_release_collector.collectors.rss_collector import collect_rss
 from press_release_collector.collectors.wire_collector import collect_wire
 from press_release_collector.core.normalize import normalize_press_release
@@ -184,6 +185,50 @@ def test_html_collector_uses_url_date_when_page_has_no_time(monkeypatch) -> None
 
     assert releases[0].published_at == "2026-03-09"
     assert normalize_press_release(releases[0]).published_at == "2026-03-09T00:00:00+00:00"
+
+
+def test_html_collector_prefers_paragraphs_when_extracted_text_is_navigation(
+    monkeypatch,
+) -> None:
+    listing_url = "https://www.csisoftware.com/category/press-releases/"
+    release_url = "https://www.csisoftware.com/category/press-releases/2026/04/10/meetings"
+    pages = {
+        listing_url: f"""
+        <html><body>
+          <article><h2><a href="{release_url}">Constellation Announces Annual Meetings</a></h2></article>
+        </body></html>
+        """,
+        release_url: """
+        <html><body><main>
+          <h1>Constellation Announces Annual Meetings</h1>
+          <p>TORONTO, CANADA - Constellation Software announced its annual shareholder meetings.</p>
+          <p>Meeting materials will be available to shareholders before the record date.</p>
+        </main></body></html>
+        """,
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+    class _FakeTrafilatura:
+        @staticmethod
+        def extract(*args, **kwargs):
+            return (
+            "About Us Overview Being Acquired Management Team Contact Us ESG "
+            "Our Companies News Investor Relations Statutory Filings"
+            )
+
+    monkeypatch.setattr(html_collector, "trafilatura", _FakeTrafilatura)
+
+    releases = collect_html(
+        ticker="CSU.TO",
+        company_name="Constellation Software",
+        url=listing_url,
+    )
+
+    assert "annual shareholder meetings" in releases[0].summary
+    assert "About Us Overview" not in releases[0].summary
 
 
 def test_rss_collector_returns_empty_on_failure(monkeypatch) -> None:
