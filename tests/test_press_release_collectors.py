@@ -486,6 +486,42 @@ def test_rss_collector_xml_fallback_resolves_relative_links(monkeypatch) -> None
     )
 
 
+def test_rss_collector_sanitizes_html_summary_from_feedparser(monkeypatch) -> None:
+    html_summary = """
+    <span>
+      <div class="q4default">
+        <p><i>Q1 Revenue of $1,008 million, an increase of 18%</i></p>
+        <ul><li>Global Monthly Active Users increased 11% to 631 million.</li></ul>
+      </div>
+    </span>
+    """
+
+    class _Entry:
+        title = "Pinterest Announces First Quarter 2026 Results"
+        link = "/files/doc_earnings/2026/q1/earnings-result/Q126-PressRelease.pdf"
+        published = "Mon, 04 May 2026 20:05:00 GMT"
+        summary = html_summary
+        content = [{"value": html_summary * 200}]
+
+    monkeypatch.setattr("press_release_collector.collectors.rss_collector.FEEDPARSER_AVAILABLE", True)
+    monkeypatch.setattr(
+        "press_release_collector.collectors.rss_collector.feedparser.parse",
+        lambda url: type("_Feed", (), {"entries": [_Entry()]})(),
+    )
+
+    releases = collect_rss(
+        "PINS",
+        "Pinterest",
+        "https://investor.pinterestinc.com/rss/pressrelease.aspx",
+    )
+
+    assert releases[0].summary.startswith("Q1 Revenue of $1,008 million")
+    assert "<" not in releases[0].summary
+    assert "q4default" not in releases[0].summary
+    assert len(releases[0].summary) <= 500
+    assert releases[0].content == releases[0].summary
+
+
 def test_rss_collector_filters_google_news_noise(monkeypatch) -> None:
     class _XmlResponse:
         content = b"""

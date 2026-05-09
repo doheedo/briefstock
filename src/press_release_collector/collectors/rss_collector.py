@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import logging
+import re
 from types import SimpleNamespace
 import xml.etree.ElementTree as ET
 from urllib.parse import urljoin
 
 import httpx
+from bs4 import BeautifulSoup
 
 from press_release_collector.core.models import PressRelease
+from press_release_collector.core.normalize import clean_spaces
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +27,7 @@ GOOGLE_NEWS_NOISE_TERMS = (
     "lead plaintiff",
     "law firm",
 )
+MAX_SUMMARY_LENGTH = 500
 
 try:  # pragma: no cover - exercised when optional dependency is installed
     import feedparser
@@ -58,7 +62,7 @@ def collect_rss(ticker: str, company_name: str, url: str) -> list[PressRelease]:
             or getattr(entry, "updated", None)
             or None
         )
-        summary = getattr(entry, "summary", None)
+        summary = _clean_feed_text(getattr(entry, "summary", None))
         content = getattr(entry, "content", None)
         if isinstance(content, list):
             content = " ".join(
@@ -66,6 +70,7 @@ def collect_rss(ticker: str, company_name: str, url: str) -> list[PressRelease]:
                 for part in content
                 if isinstance(part, dict)
             )
+        content = summary
         releases.append(
             PressRelease.from_raw(
                 ticker=ticker,
@@ -76,7 +81,7 @@ def collect_rss(ticker: str, company_name: str, url: str) -> list[PressRelease]:
                 source_name=url,
                 source_type="official_rss",
                 summary=summary,
-                content=content or summary,
+                content=content,
             )
         )
     return releases
@@ -104,7 +109,7 @@ def _collect_rss_xml(ticker: str, company_name: str, url: str) -> list[PressRele
             continue
         if _is_google_news_noise(url, title):
             continue
-        summary = _xml_text(item, "description")
+        summary = _clean_feed_text(_xml_text(item, "description"))
         releases.append(
             PressRelease.from_raw(
                 ticker=ticker,
@@ -133,6 +138,7 @@ def _collect_rss_xml(ticker: str, company_name: str, url: str) -> list[PressRele
         summary = _xml_text(entry, "atom:summary", atom_ns) or _xml_text(
             entry, "atom:content", atom_ns
         )
+        summary = _clean_feed_text(summary)
         releases.append(
             PressRelease.from_raw(
                 ticker=ticker,
@@ -148,6 +154,16 @@ def _collect_rss_xml(ticker: str, company_name: str, url: str) -> list[PressRele
             )
         )
     return releases
+
+
+def _clean_feed_text(value: str | None) -> str | None:
+    text = clean_spaces(value)
+    if not text:
+        return None
+    if "<" in text and ">" in text:
+        text = clean_spaces(BeautifulSoup(text, "html.parser").get_text(" "))
+    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
+    return text[:MAX_SUMMARY_LENGTH] or None
 
 
 def _xml_text(node: ET.Element, path: str, ns: dict[str, str] | None = None) -> str | None:

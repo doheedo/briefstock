@@ -261,7 +261,13 @@ def _parse_detail(
     paragraph_content = _paragraph_text(soup)
     content = (
         paragraph_content
-        if _looks_like_navigation(extracted_content) and paragraph_content
+        if (
+            paragraph_content
+            and (
+                _looks_like_navigation(extracted_content)
+                or _looks_like_boilerplate(extracted_content)
+            )
+        )
         else extracted_content or paragraph_content
     )
     summary = _summary(content)
@@ -343,6 +349,13 @@ def _looks_like_navigation(text: str | None) -> bool:
         "shareholder",
     )
     return sum(1 for term in nav_terms if term in lowered) >= 4
+
+
+def _looks_like_boilerplate(text: str | None) -> bool:
+    if not text:
+        return False
+    lowered = text.lower()
+    return "copyright" in lowered or "all rights reserved" in lowered
 
 
 def _summary(content: str | None) -> str | None:
