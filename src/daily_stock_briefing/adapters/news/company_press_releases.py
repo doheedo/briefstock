@@ -40,13 +40,18 @@ IR_DECK_TERMS = (
 )
 
 
-def _disclosure_kind(title: str, url: str) -> str:
+def _disclosure_kind(
+    title: str,
+    url: str,
+    extra_earnings_terms: tuple[str, ...] = (),
+) -> str:
+    extra_earnings_terms = tuple(term.lower() for term in extra_earnings_terms)
     lowered = f"{title} {url}".lower()
     if any(term in lowered for term in IR_DECK_TERMS):
         return "ir_deck"
     if any(term in lowered for term in NON_EARNINGS_RESULTS_TERMS):
         return "press_release"
-    if any(term in lowered for term in EARNINGS_TERMS):
+    if any(term in lowered for term in EARNINGS_TERMS + extra_earnings_terms):
         return "earnings"
     return "press_release"
 
@@ -76,20 +81,37 @@ class CompanyPressReleaseProvider:
             return []
         url = str(item.press_release_url)
         if _is_rss_url(url):
-            releases = collect_rss(item.ticker, item.name, url)[: self._max_items]
+            if item.press_release_noise_terms:
+                releases = collect_rss(
+                    item.ticker,
+                    item.name,
+                    url,
+                    extra_noise_terms=tuple(item.press_release_noise_terms),
+                )[: self._max_items]
+            else:
+                releases = collect_rss(item.ticker, item.name, url)[: self._max_items]
         else:
             releases = collect_html(
                 ticker=item.ticker,
                 company_name=item.name,
                 url=url,
                 max_items=self._max_items,
+                extra_skip_terms=tuple(item.press_release_skip_link_terms),
+                override_link_terms=tuple(item.press_release_link_terms) or None,
+                content_block_terms=frozenset(
+                    term.lower() for term in item.press_release_content_block_terms
+                ),
             )
         normalized = [normalize_press_release(release) for release in releases]
         unique = dedupe_press_releases(normalized)
         bulk_upsert_press_releases(self._db_path, unique)
         disclosures: list[CompanyDisclosure] = []
         for release in unique:
-            kind = _disclosure_kind(release.title, release.url)
+            kind = _disclosure_kind(
+                release.title,
+                release.url,
+                extra_earnings_terms=tuple(item.disclosure_earnings_terms),
+            )
             disclosures.append(
                 CompanyDisclosure(
                     kind=kind,

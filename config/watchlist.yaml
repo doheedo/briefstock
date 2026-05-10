@@ -20,6 +20,8 @@ watchlist:
     thesis: 고ROIC 퀄리티, 인수 후 가치창출 밸류, EPS 모멘텀 지속 여부 추적
     keywords: [Constellation Software, VMS, acquisition, ROIC]
     press_release_url: https://www.csisoftware.com/category/press-releases/
+    press_release_content_block_terms:
+      - "constellation software inc."
     source_priority: [news, filings, price]
   - ticker: TOI.V
     name: Topicus.com

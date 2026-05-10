@@ -71,6 +71,7 @@ SKIP_LINK_TERMS = (
     "contacts",
     "news-room",
 )
+_DEFAULT_CONTENT_BLOCK_TERMS: frozenset[str] = frozenset({"address"})
 
 
 def collect_html(
@@ -80,6 +81,9 @@ def collect_html(
     url: str,
     timeout: float = 10.0,
     max_items: int = 8,
+    extra_skip_terms: tuple[str, ...] = (),
+    override_link_terms: tuple[str, ...] | None = None,
+    content_block_terms: frozenset[str] = frozenset(),
 ) -> list[PressRelease]:
     try:
         with httpx.Client(
@@ -93,6 +97,8 @@ def collect_html(
                 response.text,
                 str(response.url),
                 max_items=max_items,
+                extra_skip_terms=extra_skip_terms,
+                override_link_terms=override_link_terms,
             )
             releases: list[PressRelease] = []
             for link, fallback_title in candidates:
@@ -121,6 +127,7 @@ def collect_html(
                         url=link,
                         html=detail.text,
                         fallback_title=fallback_title,
+                        content_block_terms=content_block_terms,
                     )
                 )
             return releases
@@ -134,13 +141,22 @@ def _candidate_links(
     base_url: str,
     *,
     max_items: int,
+    extra_skip_terms: tuple[str, ...] = (),
+    override_link_terms: tuple[str, ...] | None = None,
 ) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
     base_host = urlsplit(base_url).netloc.lower()
     anchors = []
     for selector in ("article a[href]", "main a[href]", "h1 a[href]", "h2 a[href]", "h3 a[href]"):
         anchors.extend(soup.select(selector))
-    out = _filter_candidate_anchors(anchors, base_url, base_host, max_items=max_items)
+    out = _filter_candidate_anchors(
+        anchors,
+        base_url,
+        base_host,
+        max_items=max_items,
+        extra_skip_terms=extra_skip_terms,
+        override_link_terms=override_link_terms,
+    )
     if out:
         return out
     return _filter_candidate_anchors(
@@ -148,6 +164,8 @@ def _candidate_links(
         base_url,
         base_host,
         max_items=max_items,
+        extra_skip_terms=extra_skip_terms,
+        override_link_terms=override_link_terms,
     )
 
 
@@ -157,6 +175,8 @@ def _filter_candidate_anchors(
     base_host: str,
     *,
     max_items: int,
+    extra_skip_terms: tuple[str, ...] = (),
+    override_link_terms: tuple[str, ...] | None = None,
 ) -> list[tuple[str, str]]:
     out: list[tuple[str, str]] = []
     seen: set[str] = set()
@@ -172,11 +192,11 @@ def _filter_candidate_anchors(
         lowered = f"{title} {parts.path}".lower()
         if parts.netloc.lower() != base_host and not _is_pdf_asset_link(link):
             continue
-        if _should_skip_link(link, title):
+        if _should_skip_link(link, title, extra_skip_terms=extra_skip_terms):
             continue
         if parts.path.lower().endswith(SKIP_EXTENSIONS):
             continue
-        if not _has_link_term(lowered):
+        if not _has_link_term(lowered, override_link_terms=override_link_terms):
             continue
         if link in seen or _same_document(link, base_url):
             continue
@@ -187,10 +207,12 @@ def _filter_candidate_anchors(
     return out
 
 
-def _has_link_term(text: str) -> bool:
+def _has_link_term(text: str, override_link_terms: tuple[str, ...] | None = None) -> bool:
+    terms = override_link_terms if override_link_terms is not None else LINK_TERMS
+    terms = tuple(term.lower() for term in terms)
     return any(
         re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", text)
-        for term in LINK_TERMS
+        for term in terms
     )
 
 
@@ -204,11 +226,17 @@ def _is_generic_link_title(title: str) -> bool:
     return title.strip().lower() in {"download", "download pdf", "pdf"}
 
 
-def _should_skip_link(url: str, title: str = "") -> bool:
+def _should_skip_link(
+    url: str,
+    title: str = "",
+    *,
+    extra_skip_terms: tuple[str, ...] = (),
+) -> bool:
+    extra_skip_terms = tuple(term.lower() for term in extra_skip_terms)
     lowered = f"{title} {url}".lower()
     path = urlsplit(url).path.rstrip("/").lower()
     return (
-        any(term in lowered for term in SKIP_LINK_TERMS)
+        any(term in lowered for term in SKIP_LINK_TERMS + extra_skip_terms)
         or path == "/news-and-stories"
         or path == "/investors/financial-results-and-reports"
     )
@@ -248,6 +276,7 @@ def _parse_detail(
     url: str,
     html: str,
     fallback_title: str,
+    content_block_terms: frozenset[str] = frozenset(),
 ) -> PressRelease:
     soup = BeautifulSoup(html, "html.parser")
     title = _title(soup) or fallback_title
@@ -258,7 +287,7 @@ def _parse_detail(
         else None
     )
     extracted_content = clean_spaces(extracted) if extracted else None
-    paragraph_content = _paragraph_text(soup)
+    paragraph_content = _paragraph_text(soup, content_block_terms=content_block_terms)
     content = (
         paragraph_content
         if (
@@ -315,22 +344,29 @@ def _published_at_from_url(url: str) -> str | None:
     return dash_match.group(1) if dash_match else None
 
 
-def _paragraph_text(soup: BeautifulSoup) -> str | None:
+def _paragraph_text(
+    soup: BeautifulSoup,
+    *,
+    content_block_terms: frozenset[str] = frozenset(),
+) -> str | None:
     paragraphs = [
         clean_spaces(p.get_text(" ", strip=True))
         for p in soup.find_all("p")
-        if _is_content_candidate(clean_spaces(p.get_text(" ", strip=True)))
+        if _is_content_candidate(
+            clean_spaces(p.get_text(" ", strip=True)),
+            block_terms=content_block_terms,
+        )
     ]
     return clean_spaces(" ".join(paragraphs)) or None
 
 
-def _is_content_candidate(text: str) -> bool:
+def _is_content_candidate(text: str, block_terms: frozenset[str] = frozenset()) -> bool:
     lowered = text.lower()
     if len(text) < 35:
         return False
     if "copyright" in lowered or "all rights reserved" in lowered:
         return False
-    if lowered in {"address", "constellation software inc."}:
+    if lowered in _DEFAULT_CONTENT_BLOCK_TERMS | block_terms:
         return False
     return True
 

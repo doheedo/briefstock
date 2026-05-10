@@ -40,14 +40,19 @@ except ImportError:  # pragma: no cover - local fallback path
     FEEDPARSER_AVAILABLE = False
 
 
-def collect_rss(ticker: str, company_name: str, url: str) -> list[PressRelease]:
+def collect_rss(
+    ticker: str,
+    company_name: str,
+    url: str,
+    extra_noise_terms: tuple[str, ...] = (),
+) -> list[PressRelease]:
     if not FEEDPARSER_AVAILABLE:
-        return _collect_rss_xml(ticker, company_name, url)
+        return _collect_rss_xml(ticker, company_name, url, extra_noise_terms)
     try:
         feed = feedparser.parse(url)
     except Exception:
         logger.warning("feedparser RSS collection failed, trying XML fallback: %s", url)
-        return _collect_rss_xml(ticker, company_name, url)
+        return _collect_rss_xml(ticker, company_name, url, extra_noise_terms)
 
     releases: list[PressRelease] = []
     for entry in getattr(feed, "entries", []) or []:
@@ -55,7 +60,7 @@ def collect_rss(ticker: str, company_name: str, url: str) -> list[PressRelease]:
         link = getattr(entry, "link", "") or ""
         if not title or not link:
             continue
-        if _is_google_news_noise(url, title):
+        if _is_google_news_noise(url, title, extra_noise_terms):
             continue
         published_at = (
             getattr(entry, "published", None)
@@ -87,7 +92,12 @@ def collect_rss(ticker: str, company_name: str, url: str) -> list[PressRelease]:
     return releases
 
 
-def _collect_rss_xml(ticker: str, company_name: str, url: str) -> list[PressRelease]:
+def _collect_rss_xml(
+    ticker: str,
+    company_name: str,
+    url: str,
+    extra_noise_terms: tuple[str, ...] = (),
+) -> list[PressRelease]:
     try:
         response = httpx.get(
             url,
@@ -107,7 +117,7 @@ def _collect_rss_xml(ticker: str, company_name: str, url: str) -> list[PressRele
         link = _xml_text(item, "link")
         if not title or not link:
             continue
-        if _is_google_news_noise(url, title):
+        if _is_google_news_noise(url, title, extra_noise_terms):
             continue
         summary = _clean_feed_text(_xml_text(item, "description"))
         releases.append(
@@ -133,7 +143,7 @@ def _collect_rss_xml(ticker: str, company_name: str, url: str) -> list[PressRele
         link = link_node.get("href", "") if link_node is not None else ""
         if not title or not link:
             continue
-        if _is_google_news_noise(url, title):
+        if _is_google_news_noise(url, title, extra_noise_terms):
             continue
         summary = _xml_text(entry, "atom:summary", atom_ns) or _xml_text(
             entry, "atom:content", atom_ns
@@ -173,8 +183,13 @@ def _xml_text(node: ET.Element, path: str, ns: dict[str, str] | None = None) -> 
     return child.text.strip() or None
 
 
-def _is_google_news_noise(source_url: str, title: str) -> bool:
+def _is_google_news_noise(
+    source_url: str,
+    title: str,
+    extra_noise_terms: tuple[str, ...] = (),
+) -> bool:
     if "news.google.com/rss/search" not in source_url.lower():
         return False
+    extra_noise_terms = tuple(term.lower() for term in extra_noise_terms)
     lowered = title.lower()
-    return any(term in lowered for term in GOOGLE_NEWS_NOISE_TERMS)
+    return any(term in lowered for term in GOOGLE_NEWS_NOISE_TERMS + extra_noise_terms)

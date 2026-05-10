@@ -27,6 +27,11 @@ class WatchlistItem(BaseModel):
     positive_signals: list[NonEmptyStr] = Field(default_factory=list)
     x_query: str | None = None
     press_release_url: NonEmptyStr | None = None
+    press_release_skip_link_terms: list[NonEmptyStr] = Field(default_factory=list)
+    press_release_link_terms: list[NonEmptyStr] = Field(default_factory=list)
+    press_release_content_block_terms: list[NonEmptyStr] = Field(default_factory=list)
+    press_release_noise_terms: list[NonEmptyStr] = Field(default_factory=list)
+    disclosure_earnings_terms: list[NonEmptyStr] = Field(default_factory=list)
     min_keyword_matches: int = 1
     source_priority: list[SourcePriority] = Field(
         default_factory=lambda: [
