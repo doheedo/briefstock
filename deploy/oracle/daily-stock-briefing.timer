@@ -1,8 +1,8 @@
 [Unit]
-Description=Run Daily Stock Briefing at 19:00 KST
+Description=Run Daily Stock Briefing at 22:30 KST
 
 [Timer]
-OnCalendar=*-*-* 19:00:00 Asia/Seoul
+OnCalendar=*-*-* 22:30:00 Asia/Seoul
 Persistent=true
 
 [Install]
