@@ -1,5 +1,9 @@
 from press_release_collector.collectors.html_collector import collect_html
 from press_release_collector.collectors import html_collector
+from press_release_collector.collectors.globenewswire_collector import (
+    collect_globenewswire_search,
+)
+from press_release_collector.collectors.nasdaq_collector import collect_nasdaq_press_releases
 from press_release_collector.collectors.rss_collector import collect_rss
 from press_release_collector.collectors.wire_collector import collect_wire
 from press_release_collector.core.normalize import normalize_press_release
@@ -30,6 +34,17 @@ class _Client:
     def get(self, url: str, **kwargs) -> _Response:
         self._requests.append(url)
         return _Response(self._pages[url], url=url)
+
+
+class _JsonResponse(_Response):
+    def __init__(self, payload: dict, url: str = "") -> None:
+        import json
+
+        self._payload = payload
+        super().__init__(json.dumps(payload), url=url)
+
+    def json(self) -> dict:
+        return self._payload
 
 
 def test_html_collector_prefers_internal_press_release_links(monkeypatch) -> None:
@@ -72,6 +87,111 @@ def test_html_collector_prefers_internal_press_release_links(monkeypatch) -> Non
     assert releases[1].title == "Investor Deck"
     assert releases[1].url == "https://www.csisoftware.com/investor-deck.pdf"
     assert releases[1].summary is None
+
+
+def test_nasdaq_collector_uses_press_release_api_and_detail_pages(monkeypatch) -> None:
+    api_url = (
+        "https://www.nasdaq.com/api/news/topic/press_release"
+        "?q=symbol:SABR|assetclass:STOCKS&limit=2&offset=0"
+    )
+    detail_url = "https://www.nasdaq.com/press-release/sabre-results"
+    requests: list[str] = []
+
+    class _NasdaqClient:
+        def __init__(self, **kwargs) -> None:
+            self.headers = kwargs.get("headers") or {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def get(self, url: str, **kwargs):
+            requests.append(url)
+            if url == api_url:
+                return _JsonResponse(
+                    {
+                        "data": {
+                            "rows": [
+                                {
+                                    "title": "Sabre Recognized in Gartnerĸį Magic Quadrantĸâ",
+                                    "url": "/press-release/sabre-results",
+                                    "created": "May 7, 2026",
+                                }
+                            ]
+                        }
+                    },
+                    url=url,
+                )
+            return _Response(
+                """
+                <html><body><main>
+                  <h1>Sabre Recognized in Gartnerĸį Magic Quadrantĸâ</h1>
+                  <p>SOUTHLAKE, Texas, May 7, 2026 - Sabre reported revenue growth.</p>
+                  <p>Management discussed demand and technology investments.</p>
+                </main></body></html>
+                """,
+                url=detail_url,
+            )
+
+    monkeypatch.setattr(
+        "press_release_collector.collectors.nasdaq_collector.httpx.Client",
+        lambda **kwargs: _NasdaqClient(**kwargs),
+    )
+
+    releases = collect_nasdaq_press_releases("SABR", "Sabre Corporation", max_items=2)
+
+    assert requests == [api_url, detail_url]
+    assert releases[0].title == "Sabre Recognized in Gartner® Magic Quadrant™"
+    assert releases[0].url == detail_url
+    assert releases[0].published_at == "May 7, 2026"
+    assert releases[0].source_type == "official_html"
+    assert "Sabre reported revenue growth" in (releases[0].summary or "")
+
+
+def test_globenewswire_collector_reads_search_result_cards(monkeypatch) -> None:
+    search_url = "https://www.globenewswire.com/search/organization/condor"
+    detail_url = (
+        "https://www.globenewswire.com/news-release/2026/05/13/3294505/0/en/"
+        "condor-announces-2026-first-quarter-results.html"
+    )
+    pages = {
+        search_url: """
+        <html><body>
+          <div class="recentNewsH">
+            <ul><li class="row">
+              <div class="date-source">May 13, 2026 17:00 ET | Source: Condor Energies Inc.</div>
+              <div class="mainLink">
+                <a href="/news-release/2026/05/13/3294505/0/en/condor-announces-2026-first-quarter-results.html">
+                  Condor Announces 2026 First Quarter Results
+                </a>
+              </div>
+              <div class="newsTxt"><p>Condor reported first quarter production and financial results.</p></div>
+            </li></ul>
+          </div>
+        </body></html>
+        """
+    }
+    requests: list[str] = []
+    monkeypatch.setattr(
+        "press_release_collector.collectors.globenewswire_collector.httpx.Client",
+        lambda **kwargs: _Client(pages, requests, **kwargs),
+    )
+
+    releases = collect_globenewswire_search(
+        "CDR.TO",
+        "Condor Energies Inc.",
+        search_url,
+        max_items=2,
+    )
+
+    assert requests == [search_url]
+    assert releases[0].title == "Condor Announces 2026 First Quarter Results"
+    assert releases[0].url == detail_url
+    assert releases[0].published_at == "May 13, 2026"
+    assert releases[0].source_type == "official_html"
+    assert "production and financial results" in (releases[0].summary or "")
 
 
 def test_html_collector_uses_clear_user_agent_and_skips_self_fragments(

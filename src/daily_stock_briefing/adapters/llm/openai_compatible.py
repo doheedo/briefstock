@@ -10,6 +10,8 @@ from daily_stock_briefing.domain.models import CompanyDisclosure, SymbolBriefing
 
 logger = logging.getLogger(__name__)
 
+TRANSLATION_BATCH_SIZE = 2
+
 
 class OpenAICompatibleLlmClassifier(LlmClassifier):
     def __init__(
@@ -175,6 +177,33 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
         if not targets:
             return disclosures
 
+        translations: dict[int, str] = {}
+        for start in range(0, len(targets), TRANSLATION_BATCH_SIZE):
+            batch = targets[start : start + TRANSLATION_BATCH_SIZE]
+            batch_translations = self._translate_company_disclosure_batch(batch)
+            if batch_translations is not None:
+                translations.update(batch_translations)
+                continue
+            if len(batch) == 1:
+                continue
+            for target in batch:
+                single_translations = self._translate_company_disclosure_batch([target])
+                if single_translations:
+                    translations.update(single_translations)
+
+        if not translations:
+            return disclosures
+
+        out = [*disclosures]
+        for index, summary in translations.items():
+            if 0 <= index < len(out):
+                out[index] = out[index].model_copy(update={"summary": summary})
+        return out
+
+    def _translate_company_disclosure_batch(
+        self,
+        targets: list[tuple[int, CompanyDisclosure]],
+    ) -> dict[int, str] | None:
         payload = {
             "model": self._model,
             "temperature": 0.1,
@@ -222,12 +251,12 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                 data = response.json()
         except Exception as exc:
             logger.warning("LLM company disclosure translation failed: %s", exc)
-            return disclosures
+            return None
 
         parsed = _extract_json_content(data)
         summaries = parsed.get("summaries") if parsed else None
         if not isinstance(summaries, list):
-            return disclosures
+            return None
 
         translations: dict[int, str] = {}
         for item in summaries:
@@ -235,16 +264,14 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                 continue
             index = item.get("index")
             summary = item.get("summary_ko")
-            if isinstance(index, int) and isinstance(summary, str) and summary.strip():
+            if (
+                isinstance(index, int)
+                and isinstance(summary, str)
+                and summary.strip()
+                and _contains_korean(summary)
+            ):
                 translations[index] = summary.strip()
-        if not translations:
-            return disclosures
-
-        out = [*disclosures]
-        for index, summary in translations.items():
-            if 0 <= index < len(out):
-                out[index] = out[index].model_copy(update={"summary": summary})
-        return out
+        return translations or None
 
     def _respect_rate_limit(self) -> None:
         if self._min_interval_seconds <= 0:

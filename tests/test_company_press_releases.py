@@ -1,5 +1,6 @@
 from daily_stock_briefing.adapters.news.company_press_releases import (
     CompanyPressReleaseProvider,
+    find_pdf_press_release_summary,
 )
 from daily_stock_briefing.domain.enums import EventCategory
 from daily_stock_briefing.domain.models import CompanyDisclosure, WatchlistItem
@@ -213,6 +214,106 @@ def test_company_press_provider_uses_sec_atom_urls(tmp_path, monkeypatch) -> Non
     ).fetch_disclosures(item)
 
     assert disclosures[0].title == "8-K - Current report"
+
+
+def test_company_press_provider_uses_nasdaq_press_release_urls(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    item = _item().model_copy(
+        update={
+            "ticker": "SABR",
+            "name": "Sabre Corporation",
+            "press_release_url": "https://www.nasdaq.com/market-activity/stocks/sabr/press-releases",
+        }
+    )
+    seen = {}
+
+    def _collect_nasdaq(ticker, company_name, max_items=6):
+        seen["args"] = (ticker, company_name, max_items)
+        return []
+
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.company_press_releases.collect_nasdaq_press_releases",
+        _collect_nasdaq,
+    )
+
+    CompanyPressReleaseProvider(db_path=tmp_path / "press.sqlite").fetch_disclosures(item)
+
+    assert seen["args"] == ("SABR", "Sabre Corporation", 6)
+
+
+def test_company_press_provider_enriches_pdf_summary_from_wire_context(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    item = _item().model_copy(update={"press_release_url": "https://example.com/news"})
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.company_press_releases.collect_html",
+        lambda **kwargs: [
+            PressRelease.from_raw(
+                ticker="BFF.MI",
+                company_name="BFF Bank",
+                title="BFF Bank Board Approves Annual Report",
+                url="https://example.com/press-release.pdf",
+                source_name="example.com",
+                source_type="official_html",
+            )
+        ],
+    )
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.company_press_releases.find_pdf_press_release_summary",
+        lambda release: "BFF Bank said the board approved the annual report and dividend proposal.",
+    )
+
+    disclosures = CompanyPressReleaseProvider(
+        db_path=tmp_path / "press.sqlite"
+    ).fetch_disclosures(item)
+
+    assert disclosures[0].summary == (
+        "BFF Bank said the board approved the annual report and dividend proposal."
+    )
+
+
+def test_pdf_summary_search_falls_back_to_general_news(monkeypatch) -> None:
+    release = PressRelease.from_raw(
+        ticker="KSPI",
+        company_name="Kaspi.kz",
+        title="1Q 2026 Results",
+        url="https://ir.kaspi.kz/media/1Q_2026_Results.pdf",
+        source_name="ir.kaspi.kz",
+        source_type="official_html",
+    )
+    calls: list[str] = []
+
+    def _collect_rss(ticker, company_name, url, extra_noise_terms=()):
+        calls.append(url)
+        if len(calls) == 1:
+            return []
+        return [
+            PressRelease.from_raw(
+                ticker=ticker,
+                company_name=company_name,
+                title="Kaspi.kz reports first-quarter 2026 results",
+                url="https://news.example.com/kaspi-q1",
+                source_name="news.example.com",
+                source_type="official_rss",
+                summary="Kaspi.kz reported first-quarter growth across payments and marketplace activity.",
+            )
+        ]
+
+    monkeypatch.setattr(
+        "daily_stock_briefing.adapters.news.company_press_releases.collect_rss",
+        _collect_rss,
+    )
+
+    summary = find_pdf_press_release_summary(release)
+
+    assert summary == (
+        "Kaspi.kz reported first-quarter growth across payments and marketplace activity."
+    )
+    assert len(calls) == 2
+    assert "globenewswire+or+prnewswire+or+businesswire" in calls[0].lower()
 
 
 def test_html_report_renders_press_release_summary_and_deck_link(tmp_path) -> None:

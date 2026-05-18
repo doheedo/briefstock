@@ -32,6 +32,9 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
     items = load_watchlist(Path("config/watchlist.yaml"))
     by_ticker = {item.ticker: item for item in items}
 
+    removed_tickers = {"RELX", "WKL.AS", "TRI", "LC", "002821.SZ"}
+    assert removed_tickers.isdisjoint(by_ticker)
+
     assert (
         by_ticker["CSU.TO"].press_release_url
         == "https://www.csisoftware.com/category/press-releases/"
@@ -48,10 +51,6 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
     assert (
         by_ticker["IBN"].press_release_url
         == "https://www.icici.bank.in/about-us/invest-relations"
-    )
-    assert (
-        by_ticker["TRI"].press_release_url
-        == "https://ir.thomsonreuters.com/news-and-events/press-releases"
     )
     assert (
         by_ticker["WLK"].press_release_url
@@ -72,7 +71,6 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
         by_ticker["NVO"].press_release_url
         == "https://www.novonordisk.com/news-and-media/latest-news.html"
     )
-    assert by_ticker["LC"].press_release_url == "https://ir.lendingclub.com/rss/pressrelease.aspx"
     assert by_ticker["QSR"].press_release_url == "https://www.rbi.com/rss/pressrelease.aspx"
     assert (
         by_ticker["PINS"].press_release_url
@@ -93,7 +91,6 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
         by_ticker["BRK-B"].press_release_url
         == "https://news.google.com/rss/search?q=%22Berkshire+Hathaway+Inc.%22+%22Earnings+Release%22+when%3A30d&hl=en-US&gl=US&ceid=US:en"
     )
-    assert by_ticker["RELX"].press_release_url == "https://www.relx.com/rss/press-releases"
     assert (
         by_ticker["CVE"].press_release_url
         == "https://www.cenovus.com/Investors/Financial-results-and-reports"
@@ -110,6 +107,22 @@ def test_project_watchlist_includes_csu_press_release_url() -> None:
     assert (
         by_ticker["ADYEN.AS"].press_release_url
         == "https://news.google.com/rss/search?q=%22Adyen%22+%22financial+results%22+OR+%22press+release%22+when%3A60d&hl=en-NL&gl=NL&ceid=NL:en"
+    )
+    assert (
+        by_ticker["SABR"].press_release_url
+        == "https://www.nasdaq.com/market-activity/stocks/sabr/press-releases"
+    )
+    assert (
+        by_ticker["CDR.TO"].press_release_url
+        == "https://www.globenewswire.com/search/organization/condor%2520energies%2520inc%C2%A7"
+    )
+    assert (
+        by_ticker["CSGP"].press_release_url
+        == "https://www.nasdaq.com/market-activity/stocks/csgp/press-releases"
+    )
+    assert (
+        by_ticker["MANH"].press_release_url
+        == "https://www.nasdaq.com/market-activity/stocks/manh/press-releases"
     )
 
 
