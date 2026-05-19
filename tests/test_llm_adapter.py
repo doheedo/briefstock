@@ -237,6 +237,122 @@ def test_openai_compatible_llm_retries_failed_translation_batch_individually(
     assert translated[1].summary == "영업이익률이 확대되었습니다."
     assert len(requests) == 3
 
+def test_openai_compatible_llm_does_not_retry_translation_batch_after_rate_limit(
+    monkeypatch,
+) -> None:
+    class _RateLimitedTranslateClient(_FakeClient):
+        def post(self, url, headers=None, json=None):
+            self._requests.append({"url": url, "headers": headers, "json": json})
+            request = openai_compatible.httpx.Request("POST", url)
+            response = openai_compatible.httpx.Response(429, request=request)
+            raise openai_compatible.httpx.HTTPStatusError(
+                "rate limited", request=request, response=response
+            )
+
+    requests = []
+    monkeypatch.setattr(
+        openai_compatible.httpx,
+        "Client",
+        lambda **kwargs: _RateLimitedTranslateClient(requests, **kwargs),
+    )
+    client = OpenAICompatibleLlmClassifier(
+        api_key="secret",
+        base_url="https://api.example.com/v1",
+        model="model-1",
+    )
+    disclosures = [
+        CompanyDisclosure(
+            kind="earnings",
+            title="Company Reports Results",
+            url="https://example.com/results",
+            summary="Revenue increased 10% year over year.",
+        ),
+        CompanyDisclosure(
+            kind="press_release",
+            title="Company Announces Margin Update",
+            url="https://example.com/margin",
+            summary="Operating margin expanded during the quarter.",
+        ),
+    ]
+
+    translated = client.translate_company_disclosures(disclosures)
+
+    assert translated == disclosures
+    assert len(requests) == 1
+
+
+def test_openai_compatible_llm_skips_followup_calls_after_rate_limit(
+    monkeypatch,
+) -> None:
+    class _RateLimitedClient(_FakeClient):
+        def post(self, url, headers=None, json=None):
+            self._requests.append({"url": url, "headers": headers, "json": json})
+            request = openai_compatible.httpx.Request("POST", url)
+            response = openai_compatible.httpx.Response(429, request=request)
+            raise openai_compatible.httpx.HTTPStatusError(
+                "rate limited", request=request, response=response
+            )
+
+    requests = []
+    monkeypatch.setattr(
+        openai_compatible.httpx,
+        "Client",
+        lambda **kwargs: _RateLimitedClient(requests, **kwargs),
+    )
+    client = OpenAICompatibleLlmClassifier(
+        api_key="secret",
+        base_url="https://api.example.com/v1",
+        model="model-1",
+    )
+    briefing = _briefing()
+
+    assert client.refine_briefing(briefing) == briefing
+    assert client.summarize_report([briefing], default_summary="fallback") == "fallback"
+    assert len(requests) == 1
+
+
+def test_openai_compatible_llm_retries_yellowbrick_summary_with_compact_prompt(
+    monkeypatch,
+) -> None:
+    class _SummaryResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return {"choices": [{"message": {"content": "압축 요약입니다."}}]}
+
+    class _TooLargeThenSuccessClient(_FakeClient):
+        def post(self, url, headers=None, json=None):
+            self._requests.append({"url": url, "headers": headers, "json": json})
+            if len(self._requests) == 1:
+                request = openai_compatible.httpx.Request("POST", url)
+                response = openai_compatible.httpx.Response(413, request=request)
+                raise openai_compatible.httpx.HTTPStatusError(
+                    "request entity too large", request=request, response=response
+                )
+            return _SummaryResponse()
+
+    requests = []
+    monkeypatch.setattr(
+        openai_compatible.httpx,
+        "Client",
+        lambda **kwargs: _TooLargeThenSuccessClient(requests, **kwargs),
+    )
+    client = OpenAICompatibleLlmClassifier(
+        api_key="secret",
+        base_url="https://api.example.com/v1",
+        model="model-1",
+    )
+
+    result = client.summarize_yellowbrick_pitch("A" * 14000, title="Long Pitch")
+
+    assert result == "압축 요약입니다."
+    assert len(requests) == 2
+    first_content = requests[0]["json"]["messages"][1]["content"]
+    second_content = requests[1]["json"]["messages"][1]["content"]
+    assert len(second_content) < len(first_content)
+    assert "Long Pitch" in second_content
+
 
 def test_openai_compatible_llm_respects_minimum_request_interval(monkeypatch) -> None:
     requests = []

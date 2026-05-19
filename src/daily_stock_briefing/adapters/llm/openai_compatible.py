@@ -11,6 +11,12 @@ from daily_stock_briefing.domain.models import CompanyDisclosure, SymbolBriefing
 logger = logging.getLogger(__name__)
 
 TRANSLATION_BATCH_SIZE = 2
+LLM_RATE_LIMIT_COOLDOWN_SECONDS = 60.0
+YELLOWBRICK_RETRY_CONTENT_LIMIT = 3000
+
+
+class _RateLimitExceeded(Exception):
+    """Raised when the upstream LLM provider rejects more requests for now."""
 
 
 class OpenAICompatibleLlmClassifier(LlmClassifier):
@@ -29,19 +35,12 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
         self._timeout = timeout
         self._min_interval_seconds = 60.0 / rpm_limit if rpm_limit else 0.0
         self._last_request_at: float | None = None
+        self._cooldown_until: float = 0.0
 
     def refine_briefing(self, briefing: SymbolBriefing) -> SymbolBriefing:
         payload = self._request_payload(briefing)
         try:
-            self._respect_rate_limit()
-            with httpx.Client(timeout=self._timeout) as client:
-                response = client.post(
-                    f"{self._base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {self._api_key}"},
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
+            data = self._request_chat_completion(payload)
         except Exception as exc:
             logger.warning("LLM briefing refinement failed: %s", exc)
             return briefing
@@ -100,18 +99,10 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
         }
 
         try:
-            self._respect_rate_limit()
-            with httpx.Client(timeout=self._timeout) as client:
-                response = client.post(
-                    f"{self._base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {self._api_key}"},
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
-                content = data["choices"][0]["message"]["content"]
-                if content and isinstance(content, str):
-                    return content.strip()
+            data = self._request_chat_completion(payload)
+            content = data["choices"][0]["message"]["content"]
+            if content and isinstance(content, str):
+                return content.strip()
         except Exception as exc:
             logger.warning("LLM report summary failed: %s", exc)
             pass
@@ -147,19 +138,14 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             ],
         }
         try:
-            self._respect_rate_limit()
-            with httpx.Client(timeout=self._timeout) as client:
-                response = client.post(
-                    f"{self._base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {self._api_key}"},
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
-                content = data["choices"][0]["message"]["content"]
-                if content and isinstance(content, str):
-                    out = content.strip()
-                    return out if out else None
+            data = self._request_chat_completion(
+                payload,
+                compact_user_content_limit=YELLOWBRICK_RETRY_CONTENT_LIMIT,
+            )
+            content = data["choices"][0]["message"]["content"]
+            if content and isinstance(content, str):
+                out = content.strip()
+                return out if out else None
         except Exception as exc:
             logger.warning("LLM Yellowbrick summary failed: %s", exc)
             return None
@@ -180,25 +166,24 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
         translations: dict[int, str] = {}
         for start in range(0, len(targets), TRANSLATION_BATCH_SIZE):
             batch = targets[start : start + TRANSLATION_BATCH_SIZE]
-            batch_translations = self._translate_company_disclosure_batch(batch)
+            try:
+                batch_translations = self._translate_company_disclosure_batch(batch)
+            except _RateLimitExceeded:
+                break
             if batch_translations is not None:
                 translations.update(batch_translations)
                 continue
             if len(batch) == 1:
                 continue
             for target in batch:
-                single_translations = self._translate_company_disclosure_batch([target])
+                try:
+                    single_translations = self._translate_company_disclosure_batch([target])
+                except _RateLimitExceeded:
+                    return _apply_company_disclosure_translations(disclosures, translations)
                 if single_translations:
                     translations.update(single_translations)
 
-        if not translations:
-            return disclosures
-
-        out = [*disclosures]
-        for index, summary in translations.items():
-            if 0 <= index < len(out):
-                out[index] = out[index].model_copy(update={"summary": summary})
-        return out
+        return _apply_company_disclosure_translations(disclosures, translations)
 
     def _translate_company_disclosure_batch(
         self,
@@ -240,15 +225,16 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             ],
         }
         try:
-            self._respect_rate_limit()
-            with httpx.Client(timeout=self._timeout) as client:
-                response = client.post(
-                    f"{self._base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {self._api_key}"},
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
+            data = self._request_chat_completion(payload)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 429:
+                logger.warning("LLM company disclosure translation rate-limited: %s", exc)
+                raise _RateLimitExceeded from exc
+            logger.warning("LLM company disclosure translation failed: %s", exc)
+            return None
+        except _RateLimitExceeded as exc:
+            logger.warning("LLM company disclosure translation rate-limited: %s", exc)
+            raise
         except Exception as exc:
             logger.warning("LLM company disclosure translation failed: %s", exc)
             return None
@@ -272,6 +258,58 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             ):
                 translations[index] = summary.strip()
         return translations or None
+
+    def _request_chat_completion(
+        self,
+        payload: dict[str, Any],
+        *,
+        compact_user_content_limit: int | None = None,
+    ) -> dict[str, Any]:
+        attempts = [payload]
+        if compact_user_content_limit:
+            attempts.append(
+                _compact_last_user_message_payload(payload, compact_user_content_limit)
+            )
+        last_error: Exception | None = None
+        for attempt_index, request_payload in enumerate(attempts):
+            self._raise_if_llm_on_cooldown()
+            self._respect_rate_limit()
+            try:
+                with httpx.Client(timeout=self._timeout) as client:
+                    response = client.post(
+                        f"{self._base_url}/chat/completions",
+                        headers={"Authorization": f"Bearer {self._api_key}"},
+                        json=request_payload,
+                    )
+                    response.raise_for_status()
+                    return response.json()
+            except httpx.HTTPStatusError as exc:
+                last_error = exc
+                if exc.response.status_code == 429:
+                    self._cooldown_until = (
+                        time.monotonic() + LLM_RATE_LIMIT_COOLDOWN_SECONDS
+                    )
+                    raise _RateLimitExceeded("LLM provider rate limited") from exc
+                if (
+                    exc.response.status_code == 413
+                    and compact_user_content_limit
+                    and attempt_index == 0
+                ):
+                    logger.warning(
+                        "LLM payload too large; retrying with compact prompt."
+                    )
+                    continue
+                raise
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("No LLM response was produced.")
+
+    def _raise_if_llm_on_cooldown(self) -> None:
+        remaining = self._cooldown_until - time.monotonic()
+        if remaining > 0:
+            raise _RateLimitExceeded(
+                f"LLM provider is cooling down for {remaining:.0f}s"
+            )
 
     def _respect_rate_limit(self) -> None:
         if self._min_interval_seconds <= 0:
@@ -338,6 +376,44 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                 },
             ],
         }
+
+
+def _compact_last_user_message_payload(
+    payload: dict[str, Any],
+    content_limit: int,
+) -> dict[str, Any]:
+    compact_payload = {**payload}
+    messages = payload.get("messages")
+    if not isinstance(messages, list):
+        return compact_payload
+    compact_messages = [dict(message) for message in messages if isinstance(message, dict)]
+    for message in reversed(compact_messages):
+        if message.get("role") != "user":
+            continue
+        content = message.get("content")
+        if isinstance(content, str) and len(content) > content_limit:
+            prefix, separator, body = content.partition("\n\n")
+            compact_body = body[-content_limit:] if separator else content[-content_limit:]
+            message["content"] = (
+                f"{prefix}\n\n{compact_body}" if separator else compact_body
+            )
+        break
+    compact_payload["messages"] = compact_messages
+    return compact_payload
+
+
+def _apply_company_disclosure_translations(
+    disclosures: list[CompanyDisclosure],
+    translations: dict[int, str],
+) -> list[CompanyDisclosure]:
+    if not translations:
+        return disclosures
+
+    out = [*disclosures]
+    for index, summary in translations.items():
+        if 0 <= index < len(out):
+            out[index] = out[index].model_copy(update={"summary": summary})
+    return out
 
 
 def _extract_json_content(data: Any) -> dict[str, Any] | None:
