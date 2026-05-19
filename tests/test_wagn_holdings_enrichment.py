@@ -16,6 +16,7 @@ def test_build_wagn_holdings_section_detects_weight_changes(tmp_path, monkeypatc
     monkeypatch.setattr(svc, "fetch_wagn_holdings_csv", _first_fetch)
     first = svc.build_wagn_holdings_section("2026-04-29", snapshot_dir=snapshot_dir)
     assert first.total_holdings == 2
+    assert [item.ticker for item in first.top_holdings] == ["AAA", "BBB"]
     assert first.notable_changes
     assert any(change.change_type == "added" for change in first.notable_changes)
 
@@ -31,3 +32,22 @@ def test_build_wagn_holdings_section_detects_weight_changes(tmp_path, monkeypatc
     assert "weight_changed" in kinds
     assert "added" in kinds
     assert "removed" in kinds
+
+
+def test_build_wagn_holdings_section_keeps_all_current_holdings(tmp_path, monkeypatch) -> None:
+    snapshot_dir = Path(tmp_path)
+
+    def _fetch():
+        return "04/28/2026", [
+            WagnHoldingItem(ticker=f"T{i:02d}", name=f"Company {i}", weight_pct=1.0)
+            for i in range(12)
+        ]
+
+    monkeypatch.setattr(svc, "fetch_wagn_holdings_csv", _fetch)
+
+    section = svc.build_wagn_holdings_section("2026-04-30", snapshot_dir=snapshot_dir)
+
+    assert section.total_holdings == 12
+    assert [item.ticker for item in section.top_holdings] == [
+        f"T{i:02d}" for i in range(12)
+    ]

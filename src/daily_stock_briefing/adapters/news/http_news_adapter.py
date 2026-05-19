@@ -53,6 +53,16 @@ def _publisher_name(raw_source: object) -> str | None:
     return name
 
 
+def _news_queries(item: WatchlistItem) -> list[str]:
+    query_terms = [item.name, *item.aliases, *item.keywords]
+    base_query = " OR ".join(query_terms)
+    press_query = (
+        f"({item.name}) AND "
+        '("press release" OR "news release" OR "보도자료" OR "기업 공지")'
+    )
+    return [base_query, press_query]
+
+
 class HttpNewsProvider(NewsProvider):
     def __init__(self, base_url: str, api_key: str, timeout: float = 10.0) -> None:
         self._base_url = base_url.rstrip("/")
@@ -60,64 +70,75 @@ class HttpNewsProvider(NewsProvider):
         self._timeout = timeout
 
     def fetch_news(self, item: WatchlistItem) -> list[NewsItem]:
-        query_terms = [item.name, *item.aliases, *item.keywords]
-        params = {"q": " OR ".join(query_terms), "apiKey": self._api_key}
+        news: list[NewsItem] = []
+        seen_story_keys: set[str] = set()
+
         try:
             with httpx.Client(timeout=self._timeout) as client:
-                response = client.get(self._base_url, params=params)
-                response.raise_for_status()
-            payload = response.json()
+                for query in _news_queries(item):
+                    params = {"q": query, "apiKey": self._api_key}
+                    try:
+                        response = client.get(self._base_url, params=params)
+                        response.raise_for_status()
+                        payload = response.json()
+                    except Exception:
+                        continue
+                    if not isinstance(payload, dict):
+                        continue
+                    for raw in payload.get("articles", []):
+                        if not isinstance(raw, dict):
+                            continue
+                        if _contains_excluded_keyword(item, raw):
+                            continue
+                        matched_keywords = _match_keywords(item, raw)
+                        if len(matched_keywords) < item.min_keyword_matches:
+                            continue
+                        url = _coerce_text(raw.get("url"), none_as_empty=False)
+                        title = _coerce_text(raw.get("title"), none_as_empty=False)
+                        summary = _coerce_text(raw.get("description"))
+                        published_at = _coerce_text(raw.get("publishedAt"), none_as_empty=False)
+                        publisher = _publisher_name(raw.get("source"))
+                        if (
+                            not url
+                            or not title
+                            or not published_at
+                            or summary is None
+                            or publisher is None
+                        ):
+                            continue
+                        try:
+                            parsed_published_at = datetime.fromisoformat(
+                                published_at.replace("Z", "+00:00")
+                            )
+                        except ValueError:
+                            continue
+                        if parsed_published_at.tzinfo is None:
+                            continue
+                        parsed_published_at = parsed_published_at.astimezone(UTC)
+                        canonical_url = _canonicalize_url(url)
+                        if canonical_url is None:
+                            continue
+
+                        story_key = canonical_url.lower()
+                        if story_key in seen_story_keys:
+                            continue
+                        seen_story_keys.add(story_key)
+
+                        news.append(
+                            NewsItem(
+                                id=url,
+                                ticker=item.ticker,
+                                title=title,
+                                summary=summary,
+                                publisher=publisher,
+                                url=url,
+                                canonical_url=canonical_url,
+                                published_at=parsed_published_at,
+                                source="http_news",
+                                matched_keywords=matched_keywords,
+                            )
+                        )
         except Exception:
             return []
-        if not isinstance(payload, dict):
-            return []
-        news: list[NewsItem] = []
-        for raw in payload.get("articles", []):
-            if not isinstance(raw, dict):
-                continue
-            if _contains_excluded_keyword(item, raw):
-                continue
-            matched_keywords = _match_keywords(item, raw)
-            if len(matched_keywords) < item.min_keyword_matches:
-                continue
-            url = _coerce_text(raw.get("url"), none_as_empty=False)
-            title = _coerce_text(raw.get("title"), none_as_empty=False)
-            summary = _coerce_text(raw.get("description"))
-            published_at = _coerce_text(raw.get("publishedAt"), none_as_empty=False)
-            publisher = _publisher_name(raw.get("source"))
-            if (
-                not url
-                or not title
-                or not published_at
-                or summary is None
-                or publisher is None
-            ):
-                continue
-            try:
-                parsed_published_at = datetime.fromisoformat(
-                    published_at.replace("Z", "+00:00")
-                )
-            except ValueError:
-                continue
-            if parsed_published_at.tzinfo is None:
-                continue
-            parsed_published_at = parsed_published_at.astimezone(UTC)
-            canonical_url = _canonicalize_url(url)
-            if canonical_url is None:
-                continue
 
-            news.append(
-                NewsItem(
-                    id=url,
-                    ticker=item.ticker,
-                    title=title,
-                    summary=summary,
-                    publisher=publisher,
-                    url=url,
-                    canonical_url=canonical_url,
-                    published_at=parsed_published_at,
-                    source="http_news",
-                    matched_keywords=matched_keywords,
-                )
-            )
         return news

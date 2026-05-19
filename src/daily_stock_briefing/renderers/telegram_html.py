@@ -32,16 +32,16 @@ def _format_metrics(briefing: SymbolBriefing) -> str:
     bench = escape(benchmark_display_name(price.benchmark_ticker if price else None))
     if price is None:
         return (
-            "\n• 5D: n/a / 1M: n/a / 1Y: n/a\n"
-            f"• {bench} 1Y: n/a / Relative: n/a\n• RSI(14): n/a"
+            "\n• 5D: n/a / 1M: n/a / 1Y: n/a / "
+            f"{bench} 1Y: n/a / Relative: n/a / RSI(14): n/a"
         )
     return (
         f"\n• 5D: {_format_pct(price.return_5d_pct)} / "
         f"1M: {_format_pct(price.return_1m_pct)} / "
-        f"1Y: {_format_pct(price.return_1y_pct)}"
-        f"\n• {bench} 1Y: {_format_pct(price.benchmark_return_1y_pct)} / "
-        f"Relative: {_format_pct(price.relative_return_1y_pct, suffix='%p')}"
-        f"\n• RSI(14): {_format_number(price.rsi_14)}"
+        f"1Y: {_format_pct(price.return_1y_pct)} / "
+        f"{bench} 1Y: {_format_pct(price.benchmark_return_1y_pct)} / "
+        f"Relative: {_format_pct(price.relative_return_1y_pct, suffix='%p')} / "
+        f"RSI(14): {_format_number(price.rsi_14)}"
     )
 
 
@@ -60,6 +60,21 @@ def _source_links(briefing: SymbolBriefing) -> str:
     return f"\n• 출처: {links}"
 
 
+def _company_homepage_links(briefing: SymbolBriefing) -> str:
+    links: list[str] = []
+    for disclosure in briefing.company_disclosures[:3]:
+        label = {
+            "earnings": "실적",
+            "ir_deck": "IR덱",
+        }.get(disclosure.kind, "PR")
+        links.append(
+            f'<a href="{escape(disclosure.url, quote=True)}">{escape(label)}</a>'
+        )
+    if not links:
+        return ""
+    return f"\n• 기업홈: {' '.join(links)}"
+
+
 def render_symbol_line(briefing: SymbolBriefing) -> str:
     ticker = escape(briefing.watchlist_item.ticker)
     name = escape(briefing.watchlist_item.name)
@@ -74,6 +89,7 @@ def render_symbol_line(briefing: SymbolBriefing) -> str:
         f"{_format_metrics(briefing)}\n"
         f"• Thesis 영향: {summary}"
         f"{question_line}"
+        f"{_company_homepage_links(briefing)}"
         f"{_source_links(briefing)}"
     )
 

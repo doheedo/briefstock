@@ -16,6 +16,116 @@ def test_load_watchlist_reads_required_fields() -> None:
     assert items[0].source_priority == ["filings", "news", "price"]
 
 
+def test_project_watchlist_includes_requested_us_and_india_adrs() -> None:
+    items = load_watchlist(Path("config/watchlist.yaml"))
+    by_ticker = {item.ticker: item for item in items}
+
+    assert by_ticker["Z"].name == "Zillow Group, Inc. Class C"
+    assert by_ticker["RBLX"].name == "Roblox Corporation"
+    assert by_ticker["HDB"].name == "HDFC Bank Limited ADR"
+    assert by_ticker["IBN"].name == "ICICI Bank Limited ADR"
+    assert by_ticker["HDB"].market == "US"
+    assert by_ticker["IBN"].market == "US"
+
+
+def test_project_watchlist_includes_csu_press_release_url() -> None:
+    items = load_watchlist(Path("config/watchlist.yaml"))
+    by_ticker = {item.ticker: item for item in items}
+
+    removed_tickers = {"RELX", "WKL.AS", "TRI", "LC", "002821.SZ"}
+    assert removed_tickers.isdisjoint(by_ticker)
+
+    assert (
+        by_ticker["CSU.TO"].press_release_url
+        == "https://www.csisoftware.com/category/press-releases/"
+    )
+    assert (
+        by_ticker["Z"].press_release_url
+        == "https://zillowgroup.mediaroom.com/press-releases"
+    )
+    assert by_ticker["RBLX"].press_release_url == "https://about.roblox.com/newsroom"
+    assert (
+        by_ticker["HDB"].press_release_url
+        == "https://www.hdfc.bank.in/about-us/investor-relations/financial-results"
+    )
+    assert (
+        by_ticker["IBN"].press_release_url
+        == "https://www.icici.bank.in/about-us/invest-relations"
+    )
+    assert (
+        by_ticker["WLK"].press_release_url
+        == "https://investors.westlake.com/news-events/news-releases"
+    )
+    assert (
+        by_ticker["UPST"].press_release_url
+        == "https://ir.upstart.com/news-and-events/news-releases"
+    )
+    assert by_ticker["TME"].press_release_url == "https://ir.tencentmusic.com/Press-Releases"
+    assert (
+        by_ticker["VFC"].press_release_url
+        == "https://www.vfc.com/investors/news-events-presentations/press-releases"
+    )
+    assert by_ticker["KSPI"].press_release_url == "https://ir.kaspi.kz/news/"
+    assert by_ticker["UMG.AS"].press_release_url == "https://www.universalmusic.com/news/"
+    assert (
+        by_ticker["NVO"].press_release_url
+        == "https://www.novonordisk.com/news-and-media/latest-news.html"
+    )
+    assert by_ticker["QSR"].press_release_url == "https://www.rbi.com/rss/pressrelease.aspx"
+    assert (
+        by_ticker["PINS"].press_release_url
+        == "https://investor.pinterestinc.com/rss/pressrelease.aspx"
+    )
+    assert by_ticker["UBER"].press_release_url == "https://investor.uber.com/rss/PressRelease.aspx"
+    assert by_ticker["AMZN"].press_release_url == "https://ir.aboutamazon.com/rss/pressrelease.aspx"
+    assert by_ticker["META"].press_release_url == "https://investor.atmeta.com/rss/pressrelease.aspx"
+    assert (
+        by_ticker["HEPS"].press_release_url
+        == "https://news.google.com/rss/search?q=%22Hepsiburada+Announces%22+%22Financial+Results%22+when%3A30d&hl=en-US&gl=US&ceid=US:en"
+    )
+    assert (
+        by_ticker["NU"].press_release_url
+        == "https://news.google.com/rss/search?q=%28%22Nu+Holdings%22+%22Reports%22+%22Financial+Results%22+OR+%22Nu+Holdings%22+%22Announces%22+%22Financial+Results%22%29+when%3A30d&hl=en-US&gl=US&ceid=US:en"
+    )
+    assert (
+        by_ticker["BRK-B"].press_release_url
+        == "https://news.google.com/rss/search?q=%22Berkshire+Hathaway+Inc.%22+%22Earnings+Release%22+when%3A30d&hl=en-US&gl=US&ceid=US:en"
+    )
+    assert (
+        by_ticker["CVE"].press_release_url
+        == "https://www.cenovus.com/Investors/Financial-results-and-reports"
+    )
+    assert by_ticker["BFF.MI"].press_release_url == "https://investor.bff.com/en/press-releases"
+    assert (
+        by_ticker["TOI.V"].press_release_url
+        == "https://news.google.com/rss/search?q=%22Topicus%22+%22financial+results%22+OR+%22press+release%22+when%3A60d&hl=en-CA&gl=CA&ceid=CA:en"
+    )
+    assert (
+        by_ticker["GOOG"].press_release_url
+        == "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=GOOG&type=8-K&dateb=&owner=include&count=10&search_text=&output=atom"
+    )
+    assert (
+        by_ticker["ADYEN.AS"].press_release_url
+        == "https://news.google.com/rss/search?q=%22Adyen%22+%22financial+results%22+OR+%22press+release%22+when%3A60d&hl=en-NL&gl=NL&ceid=NL:en"
+    )
+    assert (
+        by_ticker["SABR"].press_release_url
+        == "https://www.nasdaq.com/market-activity/stocks/sabr/press-releases"
+    )
+    assert (
+        by_ticker["CDR.TO"].press_release_url
+        == "https://www.globenewswire.com/search/organization/condor%2520energies%2520inc%C2%A7"
+    )
+    assert (
+        by_ticker["CSGP"].press_release_url
+        == "https://www.nasdaq.com/market-activity/stocks/csgp/press-releases"
+    )
+    assert (
+        by_ticker["MANH"].press_release_url
+        == "https://www.nasdaq.com/market-activity/stocks/manh/press-releases"
+    )
+
+
 def test_load_watchlist_defaults_source_priority_when_missing(tmp_path: Path) -> None:
     path = tmp_path / "watchlist.yaml"
     path.write_text(

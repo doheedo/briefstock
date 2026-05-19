@@ -10,8 +10,12 @@ from dotenv import load_dotenv
 
 from daily_stock_briefing.adapters.filings.dart_adapter import DartFilingProvider
 from daily_stock_briefing.adapters.filings.sec_adapter import SecFilingProvider
+from daily_stock_briefing.adapters.filings.sedar_plus_adapter import SedarPlusFilingProvider
 from daily_stock_briefing.adapters.llm.openai_compatible import (
     OpenAICompatibleLlmClassifier,
+)
+from daily_stock_briefing.adapters.news.company_press_releases import (
+    CompanyPressReleaseProvider,
 )
 from daily_stock_briefing.adapters.news.http_news_adapter import HttpNewsProvider
 from daily_stock_briefing.adapters.prices.yfinance_adapter import YFinancePriceProvider
@@ -95,11 +99,16 @@ def _fetch_news(item, provider: HttpNewsProvider | None) -> list[NewsItem]:
     return provider.fetch_news(item)
 
 
+def _fetch_company_disclosures(item, provider: CompanyPressReleaseProvider):
+    return provider.fetch_disclosures(item)
+
+
 def _fetch_filings(
     item,
     *,
     dart_provider: DartFilingProvider | None = None,
     sec_provider: SecFilingProvider | None = None,
+    sedar_provider: SedarPlusFilingProvider | None = None,
 ) -> list[FilingItem]:
     if item.market.upper().startswith("KR"):
         # dart_provider must be pre-constructed by the caller so that
@@ -109,7 +118,11 @@ def _fetch_filings(
         if dart_provider is None:
             return []
         return dart_provider.fetch_filings(item)
-    if item.market.upper() in {"US", "USA", "CA", "CANADA"}:
+    if item.market.upper() in {"CA", "CANADA"}:
+        if sedar_provider is None:
+            sedar_provider = SedarPlusFilingProvider()
+        return sedar_provider.fetch_filings(item)
+    if item.market.upper() in {"US", "USA"}:
         if sec_provider is None:
             user_agent = os.getenv("SEC_USER_AGENT") or (
                 "DailyStockBriefing/0.1 contact@example.com"
@@ -142,7 +155,7 @@ def _build_llm_classifier() -> OpenAICompatibleLlmClassifier | None:
                 base_url="https://integrate.api.nvidia.com/v1",
                 model=model,
                 timeout=float(os.getenv("NVIDIA_LLM_TIMEOUT_SECONDS") or "120"),
-                rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "40"),
+                rpm_limit=int(os.getenv("LLM_RPM_LIMIT") or "39"),
             )
     if provider in {"", "auto"} and os.getenv("GROQ_API_KEY"):
         return OpenAICompatibleLlmClassifier(
@@ -182,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         _LOGGER.info("Group filter is ignored in unified delivery mode: %s", args.group)
     price_provider = YFinancePriceProvider()
     news_provider = _build_news_provider()
+    company_press_provider = CompanyPressReleaseProvider()
     llm_classifier = _build_llm_classifier()
     dart_api_key = os.getenv("DART_API_KEY")
     dart_provider = DartFilingProvider(dart_api_key) if dart_api_key else None
@@ -189,6 +203,7 @@ def main(argv: list[str] | None = None) -> int:
         user_agent=os.getenv("SEC_USER_AGENT")
         or "DailyStockBriefing/0.1 contact@example.com"
     )
+    sedar_provider = SedarPlusFilingProvider()
 
     briefings = []
     warnings: list[str] = []
@@ -235,12 +250,32 @@ def main(argv: list[str] | None = None) -> int:
                 item,
                 dart_provider=dart_provider,
                 sec_provider=sec_provider,
+                sedar_provider=sedar_provider,
             )
         except Exception as exc:  # pragma: no cover - defensive job boundary
             warnings.append(f"{item.ticker}: filings unavailable ({exc})")
             filings = []
 
-        briefing = build_symbol_briefing(item, price, news, filings)
+        try:
+            company_disclosures = _fetch_company_disclosures(
+                item,
+                company_press_provider,
+            )
+            if llm_classifier is not None and company_disclosures:
+                company_disclosures = llm_classifier.translate_company_disclosures(
+                    company_disclosures
+                )
+        except Exception as exc:  # pragma: no cover - defensive job boundary
+            warnings.append(f"{item.ticker}: company disclosures unavailable ({exc})")
+            company_disclosures = []
+
+        briefing = build_symbol_briefing(
+            item,
+            price,
+            news,
+            filings,
+            company_disclosures,
+        )
         if (
             llm_classifier is not None
             and briefing.derived_events

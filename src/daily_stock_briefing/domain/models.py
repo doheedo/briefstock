@@ -26,6 +26,12 @@ class WatchlistItem(BaseModel):
     red_flags: list[NonEmptyStr] = Field(default_factory=list)
     positive_signals: list[NonEmptyStr] = Field(default_factory=list)
     x_query: str | None = None
+    press_release_url: NonEmptyStr | None = None
+    press_release_skip_link_terms: list[NonEmptyStr] = Field(default_factory=list)
+    press_release_link_terms: list[NonEmptyStr] = Field(default_factory=list)
+    press_release_content_block_terms: list[NonEmptyStr] = Field(default_factory=list)
+    press_release_noise_terms: list[NonEmptyStr] = Field(default_factory=list)
+    disclosure_earnings_terms: list[NonEmptyStr] = Field(default_factory=list)
     min_keyword_matches: int = 1
     source_priority: list[SourcePriority] = Field(
         default_factory=lambda: [
@@ -101,6 +107,13 @@ class CompanyEvent(BaseModel):
     source_refs: list[str] = Field(default_factory=list)
 
 
+class CompanyDisclosure(BaseModel):
+    kind: NonEmptyStr
+    title: NonEmptyStr
+    url: NonEmptyStr
+    summary: str | None = None
+
+
 class YellowbrickPitchSection(BaseModel):
     """Recent Yellowbrick / stock_pitch metadata for HTML briefings."""
 
@@ -157,6 +170,7 @@ class SymbolBriefing(BaseModel):
     major_news: list[NewsItem] = Field(default_factory=list)
     filings: list[FilingItem] = Field(default_factory=list)
     derived_events: list[CompanyEvent] = Field(default_factory=list)
+    company_disclosures: list[CompanyDisclosure] = Field(default_factory=list)
     thesis_summary: str = ""
     follow_up_questions: list[str] = Field(default_factory=list)
     priority: DailyPriority = DailyPriority.LOW

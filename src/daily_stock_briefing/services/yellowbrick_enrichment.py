@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import re
+
+from rapidfuzz import fuzz
+
 from daily_stock_briefing.adapters.llm.openai_compatible import OpenAICompatibleLlmClassifier
 from daily_stock_briefing.adapters.yellowbrick.readability_extract import (
     extract_readable_text,
@@ -24,6 +28,42 @@ def _looks_like_subscription_placeholder(text: str) -> bool:
         "full portfolio allocation",
     ]
     return sum(1 for marker in markers if marker in normalized) >= 2
+
+
+def _contains_korean(text: str) -> bool:
+    return bool(re.search(r"[가-힣]", text))
+
+
+def _korean_summary_unavailable_message(*, has_source_text: bool) -> str:
+    if has_source_text:
+        return (
+            "Yellowbrick 원문은 찾았지만 한국어 요약 생성에 실패했습니다. "
+            "원문 링크를 확인하세요."
+        )
+    return "Read full article 본문 추출에 실패했습니다. 원문 링크를 확인하세요."
+
+
+def _candidate_match_text(
+    *,
+    read_more_url: str,
+    title: str | None,
+    teaser: str | None,
+) -> str:
+    parts = [title or "", teaser or "", read_more_url]
+    return " ".join(part for part in parts if part).strip()
+
+
+def _ticker_fuzzy_ratio(ticker_base: str, text: str) -> int:
+    normalized = re.sub(r"\s+", " ", text.upper()).strip()
+    if not ticker_base or not normalized:
+        return 0
+    base = ticker_base.upper()
+    best = int(fuzz.ratio(base, normalized))
+    for token in re.findall(r"[A-Z0-9.\-_$]+", normalized):
+        score = int(fuzz.ratio(base, token))
+        if score > best:
+            best = score
+    return best
 
 
 def enrich_symbol_with_yellowbrick(
@@ -53,6 +93,25 @@ def enrich_symbol_with_yellowbrick(
             }
         )
 
+    match_text = _candidate_match_text(
+        read_more_url=candidate.read_more_url,
+        title=candidate.title,
+        teaser=candidate.teaser,
+    )
+    if _ticker_fuzzy_ratio(base, match_text) <= 70:
+        return briefing.model_copy(
+            update={
+                "yellowbrick_pitch": section.model_copy(
+                    update={
+                        "summary_ko": (
+                            "최근 30일 내 티커 유사도 기준(>70)을 통과한 "
+                            "Yellowbrick 글이 없습니다."
+                        )
+                    }
+                )
+            }
+        )
+
     section.article_url = candidate.read_more_url
     section.pitch_date = candidate.pitch_date
 
@@ -69,11 +128,13 @@ def enrich_symbol_with_yellowbrick(
             body_for_llm,
             title=candidate.title or briefing.watchlist_item.name,
         )
+        if summary_ko and not _contains_korean(summary_ko):
+            summary_ko = None
 
     if not summary_ko and body_for_llm:
-        summary_ko = body_for_llm[:800] + ("…" if len(body_for_llm) > 800 else "")
+        summary_ko = _korean_summary_unavailable_message(has_source_text=True)
     elif not summary_ko:
-        summary_ko = "Read full article 본문 추출에 실패했습니다. 원문 링크를 확인하세요."
+        summary_ko = _korean_summary_unavailable_message(has_source_text=False)
 
     section.summary_ko = summary_ko
     return briefing.model_copy(update={"yellowbrick_pitch": section})

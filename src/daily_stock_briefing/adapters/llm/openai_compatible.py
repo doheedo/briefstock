@@ -6,9 +6,15 @@ from typing import Any
 import httpx
 
 from daily_stock_briefing.adapters.llm.base import LlmClassifier
-from daily_stock_briefing.domain.models import SymbolBriefing
+from daily_stock_briefing.domain.models import CompanyDisclosure, SymbolBriefing
 
 logger = logging.getLogger(__name__)
+
+TRANSLATION_BATCH_SIZE = 2
+
+
+class _RateLimitExceeded(Exception):
+    """Raised when the upstream LLM provider rejects more requests for now."""
 
 
 class OpenAICompatibleLlmClassifier(LlmClassifier):
@@ -163,6 +169,119 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             return None
         return None
 
+    def translate_company_disclosures(
+        self,
+        disclosures: list[CompanyDisclosure],
+    ) -> list[CompanyDisclosure]:
+        targets = [
+            (index, disclosure)
+            for index, disclosure in enumerate(disclosures)
+            if disclosure.summary and not _contains_korean(disclosure.summary)
+        ]
+        if not targets:
+            return disclosures
+
+        translations: dict[int, str] = {}
+        for start in range(0, len(targets), TRANSLATION_BATCH_SIZE):
+            batch = targets[start : start + TRANSLATION_BATCH_SIZE]
+            try:
+                batch_translations = self._translate_company_disclosure_batch(batch)
+            except _RateLimitExceeded:
+                break
+            if batch_translations is not None:
+                translations.update(batch_translations)
+                continue
+            if len(batch) == 1:
+                continue
+            for target in batch:
+                try:
+                    single_translations = self._translate_company_disclosure_batch([target])
+                except _RateLimitExceeded:
+                    return _apply_company_disclosure_translations(disclosures, translations)
+                if single_translations:
+                    translations.update(single_translations)
+
+        return _apply_company_disclosure_translations(disclosures, translations)
+
+    def _translate_company_disclosure_batch(
+        self,
+        targets: list[tuple[int, CompanyDisclosure]],
+    ) -> dict[int, str] | None:
+        payload = {
+            "model": self._model,
+            "temperature": 0.1,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 투자 브리핑 편집자입니다. 회사 공식 보도자료 요약을 "
+                        "자연스러운 한국어 한 문장으로 번역하세요. 숫자, 회사명, 제품명, "
+                        "고유명사는 보존하고 새 사실을 추가하지 마세요. JSON만 반환하세요."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "items": [
+                                {
+                                    "index": index,
+                                    "title": disclosure.title,
+                                    "summary": (disclosure.summary or "")[:1200],
+                                }
+                                for index, disclosure in targets
+                            ],
+                            "instruction": (
+                                "Return JSON shaped as "
+                                '{"summaries":[{"index":0,"summary_ko":"한국어 번역"}]}.'
+                            ),
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+        }
+        try:
+            self._respect_rate_limit()
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.post(
+                    f"{self._base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self._api_key}"},
+                    json=payload,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 429:
+                logger.warning("LLM company disclosure translation rate-limited: %s", exc)
+                raise _RateLimitExceeded from exc
+            logger.warning("LLM company disclosure translation failed: %s", exc)
+            return None
+        except Exception as exc:
+            logger.warning("LLM company disclosure translation failed: %s", exc)
+            return None
+
+        parsed = _extract_json_content(data)
+        summaries = parsed.get("summaries") if parsed else None
+        if not isinstance(summaries, list):
+            return None
+
+        translations: dict[int, str] = {}
+        for item in summaries:
+            if not isinstance(item, dict):
+                continue
+            index = item.get("index")
+            summary = item.get("summary_ko")
+            if (
+                isinstance(index, int)
+                and isinstance(summary, str)
+                and summary.strip()
+                and _contains_korean(summary)
+            ):
+                translations[index] = summary.strip()
+        return translations or None
+
     def _respect_rate_limit(self) -> None:
         if self._min_interval_seconds <= 0:
             return
@@ -171,10 +290,7 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             elapsed = now - self._last_request_at
             if elapsed < self._min_interval_seconds:
                 time.sleep(self._min_interval_seconds - elapsed)
-        # Timestamp is recorded before the actual HTTP request intentionally.
-        # This ensures the interval is measured from when we *start* sending,
-        # not when the response arrives, so back-to-back calls never exceed
-        # the configured RPM cap even if individual requests complete quickly.
+                now = time.monotonic()
         self._last_request_at = now
 
     def _request_payload(self, briefing: SymbolBriefing) -> dict[str, Any]:
@@ -233,6 +349,20 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
         }
 
 
+def _apply_company_disclosure_translations(
+    disclosures: list[CompanyDisclosure],
+    translations: dict[int, str],
+) -> list[CompanyDisclosure]:
+    if not translations:
+        return disclosures
+
+    out = [*disclosures]
+    for index, summary in translations.items():
+        if 0 <= index < len(out):
+            out[index] = out[index].model_copy(update={"summary": summary})
+    return out
+
+
 def _extract_json_content(data: Any) -> dict[str, Any] | None:
     try:
         content = data["choices"][0]["message"]["content"]
@@ -250,3 +380,7 @@ def _extract_json_content(data: Any) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
+
+
+def _contains_korean(text: str) -> bool:
+    return any("\uac00" <= char <= "\ud7a3" for char in text)
