@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import re
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -33,6 +34,34 @@ from daily_stock_briefing.services.yellowbrick_enrichment import enrich_symbol_w
 
 
 _LOGGER = logging.getLogger(__name__)
+TELEGRAM_BOT_URL_PATTERN = re.compile(r"(https?://api\.telegram\.org/bot)[^/\s\"']+")
+
+
+def _redact_sensitive_log_value(value):
+    if isinstance(value, str):
+        return TELEGRAM_BOT_URL_PATTERN.sub(r"\1<redacted>", value)
+    rendered_value = str(value)
+    if TELEGRAM_BOT_URL_PATTERN.search(rendered_value):
+        return TELEGRAM_BOT_URL_PATTERN.sub(r"\1<redacted>", rendered_value)
+    return value
+
+
+class SensitiveLogFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = _redact_sensitive_log_value(record.msg)
+        if isinstance(record.args, tuple):
+            record.args = tuple(_redact_sensitive_log_value(arg) for arg in record.args)
+        elif isinstance(record.args, dict):
+            record.args = {
+                key: _redact_sensitive_log_value(value)
+                for key, value in record.args.items()
+            }
+        return True
+
+
+def _ensure_sensitive_log_filter(handler: logging.Handler) -> None:
+    if not any(isinstance(log_filter, SensitiveLogFilter) for log_filter in handler.filters):
+        handler.addFilter(SensitiveLogFilter())
 
 
 def configure_logging(
@@ -54,6 +83,8 @@ def configure_logging(
         console_handler.setFormatter(formatter)
         console_handler._briefstock_console = True
         root_logger.addHandler(console_handler)
+    for handler in root_logger.handlers:
+        _ensure_sensitive_log_filter(handler)
 
     log_file.parent.mkdir(parents=True, exist_ok=True)
     target = str(log_file.resolve())
@@ -69,6 +100,7 @@ def configure_logging(
             encoding="utf-8",
         )
         file_handler.setFormatter(formatter)
+        _ensure_sensitive_log_filter(file_handler)
         root_logger.addHandler(file_handler)
 
 
