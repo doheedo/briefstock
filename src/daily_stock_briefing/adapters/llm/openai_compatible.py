@@ -12,10 +12,15 @@ logger = logging.getLogger(__name__)
 
 TRANSLATION_BATCH_SIZE = 2
 LLM_RATE_LIMIT_COOLDOWN_SECONDS = 60.0
+LLM_AUTH_FAILURE_COOLDOWN_SECONDS = 3600.0
 YELLOWBRICK_RETRY_CONTENT_LIMIT = 3000
 
 
-class _RateLimitExceeded(Exception):
+class _ProviderUnavailable(Exception):
+    """Raised when the upstream LLM provider should be skipped for this run."""
+
+
+class _RateLimitExceeded(_ProviderUnavailable):
     """Raised when the upstream LLM provider rejects more requests for now."""
 
 
@@ -168,7 +173,7 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             batch = targets[start : start + TRANSLATION_BATCH_SIZE]
             try:
                 batch_translations = self._translate_company_disclosure_batch(batch)
-            except _RateLimitExceeded:
+            except _ProviderUnavailable:
                 break
             if batch_translations is not None:
                 translations.update(batch_translations)
@@ -178,7 +183,7 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
             for target in batch:
                 try:
                     single_translations = self._translate_company_disclosure_batch([target])
-                except _RateLimitExceeded:
+                except _ProviderUnavailable:
                     return _apply_company_disclosure_translations(disclosures, translations)
                 if single_translations:
                     translations.update(single_translations)
@@ -232,8 +237,8 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                 raise _RateLimitExceeded from exc
             logger.warning("LLM company disclosure translation failed: %s", exc)
             return None
-        except _RateLimitExceeded as exc:
-            logger.warning("LLM company disclosure translation rate-limited: %s", exc)
+        except _ProviderUnavailable as exc:
+            logger.warning("LLM company disclosure translation unavailable: %s", exc)
             raise
         except Exception as exc:
             logger.warning("LLM company disclosure translation failed: %s", exc)
@@ -290,6 +295,13 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
                         time.monotonic() + LLM_RATE_LIMIT_COOLDOWN_SECONDS
                     )
                     raise _RateLimitExceeded("LLM provider rate limited") from exc
+                if exc.response.status_code in {401, 403}:
+                    self._cooldown_until = (
+                        time.monotonic() + LLM_AUTH_FAILURE_COOLDOWN_SECONDS
+                    )
+                    raise _ProviderUnavailable(
+                        "LLM provider auth/permission failed; cooling down"
+                    ) from exc
                 if (
                     exc.response.status_code == 413
                     and compact_user_content_limit
@@ -307,7 +319,7 @@ class OpenAICompatibleLlmClassifier(LlmClassifier):
     def _raise_if_llm_on_cooldown(self) -> None:
         remaining = self._cooldown_until - time.monotonic()
         if remaining > 0:
-            raise _RateLimitExceeded(
+            raise _ProviderUnavailable(
                 f"LLM provider is cooling down for {remaining:.0f}s"
             )
 

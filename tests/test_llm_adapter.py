@@ -311,6 +311,45 @@ def test_openai_compatible_llm_skips_followup_calls_after_rate_limit(
     assert len(requests) == 1
 
 
+def test_openai_compatible_llm_skips_followup_calls_after_auth_failure(
+    monkeypatch,
+) -> None:
+    class _ForbiddenClient(_FakeClient):
+        def post(self, url, headers=None, json=None):
+            self._requests.append({"url": url, "headers": headers, "json": json})
+            request = openai_compatible.httpx.Request("POST", url)
+            response = openai_compatible.httpx.Response(403, request=request)
+            raise openai_compatible.httpx.HTTPStatusError(
+                "forbidden", request=request, response=response
+            )
+
+    requests = []
+    monkeypatch.setattr(
+        openai_compatible.httpx,
+        "Client",
+        lambda **kwargs: _ForbiddenClient(requests, **kwargs),
+    )
+    client = OpenAICompatibleLlmClassifier(
+        api_key="secret",
+        base_url="https://api.example.com/v1",
+        model="model-1",
+    )
+    briefing = _briefing()
+    disclosures = [
+        CompanyDisclosure(
+            kind="earnings",
+            title="Company Reports Results",
+            url="https://example.com/results",
+            summary="Revenue increased 10% year over year.",
+        )
+    ]
+
+    assert client.refine_briefing(briefing) == briefing
+    assert client.summarize_report([briefing], default_summary="fallback") == "fallback"
+    assert client.translate_company_disclosures(disclosures) == disclosures
+    assert len(requests) == 1
+
+
 def test_openai_compatible_llm_retries_yellowbrick_summary_with_compact_prompt(
     monkeypatch,
 ) -> None:
