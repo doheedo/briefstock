@@ -148,6 +148,9 @@ def extract_readable_text(url: str, *, timeout: float = 25.0, max_chars: int = 1
         ) as client:
             response = client.get(url)
             response.raise_for_status()
+            content_type = getattr(response, "headers", {}).get("content-type", "").lower()
+            if content_type and "html" not in content_type:
+                return ""
             raw = response.text
     except Exception:
         return ""

@@ -29,7 +29,7 @@ def test_find_recent_read_more_candidate_parses_listing(monkeypatch) -> None:
             return _Resp(html)
 
     monkeypatch.setattr(readability_extract.httpx, "Client", lambda **kwargs: _Client())
-    candidate = readability_extract.find_recent_read_more_candidate("CSU", days=30)
+    candidate = readability_extract.find_recent_read_more_candidate("CSU", days=365)
 
     assert candidate is not None
     assert candidate.read_more_url == "https://www.joinyellowbrick.com/articles/csu-idea"
@@ -61,7 +61,7 @@ def test_find_recent_read_more_candidate_parses_next_payload(monkeypatch) -> Non
             return _Resp(html)
 
     monkeypatch.setattr(readability_extract.httpx, "Client", lambda **kwargs: _Client())
-    candidate = readability_extract.find_recent_read_more_candidate("CSU", days=30)
+    candidate = readability_extract.find_recent_read_more_candidate("CSU", days=365)
 
     assert candidate is not None
     assert (
@@ -103,4 +103,37 @@ def test_extract_readable_text_passes_html_text_to_readability(monkeypatch) -> N
     text = readability_extract.extract_readable_text("https://example.com/pitch")
 
     assert "Constellation Software compounds" in text
+
+
+def test_extract_readable_text_skips_non_html_response(monkeypatch) -> None:
+    class _Resp:
+        text = "%PDF-1.7\x00binary content"
+        headers = {"content-type": "application/pdf"}
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class _Client:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def get(self, _url: str):
+            return _Resp()
+
+    document_calls = []
+
+    def _unexpected_document(raw: str):
+        document_calls.append(raw)
+        raise AssertionError("non-HTML responses should not reach readability")
+
+    monkeypatch.setattr(readability_extract.httpx, "Client", lambda **kwargs: _Client())
+    monkeypatch.setattr(readability_extract, "Document", _unexpected_document)
+
+    text = readability_extract.extract_readable_text("https://example.com/pitch.pdf")
+
+    assert text == ""
+    assert document_calls == []
 
