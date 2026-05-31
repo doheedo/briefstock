@@ -14,6 +14,7 @@ from readability.readability import Document
 _DEFAULT_UA = (
     "Mozilla/5.0 (compatible; DailyStockBriefing/1.0; +https://example.com/bot)"
 )
+_XML_INCOMPATIBLE_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 
 @dataclass(frozen=True)
@@ -135,6 +136,10 @@ def _find_candidate_in_next_payload(
     return None
 
 
+def _strip_xml_incompatible_control_chars(text: str) -> str:
+    return _XML_INCOMPATIBLE_CONTROL_CHARS.sub("", text)
+
+
 def extract_readable_text(url: str, *, timeout: float = 25.0, max_chars: int = 12000) -> str:
     """
     Fetch ``url`` and return plain text from readability's main content.
@@ -151,13 +156,13 @@ def extract_readable_text(url: str, *, timeout: float = 25.0, max_chars: int = 1
             content_type = getattr(response, "headers", {}).get("content-type", "").lower()
             if content_type and "html" not in content_type:
                 return ""
-            raw = response.text
+            raw = _strip_xml_incompatible_control_chars(response.text)
     except Exception:
         return ""
 
     try:
         doc = Document(raw)
-        summary_html = doc.summary(html_partial=True)
+        summary_html = _strip_xml_incompatible_control_chars(doc.summary(html_partial=True))
         if not summary_html:
             return ""
         tree = lxml_html.fromstring(summary_html)

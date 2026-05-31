@@ -137,3 +137,49 @@ def test_extract_readable_text_skips_non_html_response(monkeypatch) -> None:
     assert text == ""
     assert document_calls == []
 
+
+def test_extract_readable_text_strips_xml_incompatible_control_chars(monkeypatch) -> None:
+    html = (
+        "<html><body><article>"
+        "<p>Pitch starts before a bad byte.\x00"
+        "Pitch continues after the bad byte.</p>"
+        "</article></body></html>"
+    )
+    document_inputs = []
+
+    class _Resp:
+        text = html
+        headers = {"content-type": "text/html; charset=utf-8"}
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class _Client:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def get(self, _url: str):
+            return _Resp()
+
+    class _Document:
+        def __init__(self, raw: str) -> None:
+            document_inputs.append(raw)
+
+        def summary(self, *, html_partial: bool) -> str:
+            assert html_partial is True
+            return (
+                "<article><p>Pitch starts before a bad byte. "
+                "Pitch continues after the bad byte.</p></article>"
+            )
+
+    monkeypatch.setattr(readability_extract.httpx, "Client", lambda **kwargs: _Client())
+    monkeypatch.setattr(readability_extract, "Document", _Document)
+
+    text = readability_extract.extract_readable_text("https://example.com/pitch")
+
+    assert "\x00" not in document_inputs[0]
+    assert "Pitch continues after the bad byte" in text
+
