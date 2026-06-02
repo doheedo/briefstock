@@ -131,6 +131,13 @@ def collect_html(
                     )
                 )
             return releases
+    except httpx.HTTPStatusError as exc:
+        logger.warning(
+            "HTML press release listing fetch failed: %s status=%s",
+            url,
+            exc.response.status_code,
+        )
+        return []
     except Exception:
         logger.exception("HTML press release collection failed: %s", url)
         return []

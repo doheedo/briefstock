@@ -1,3 +1,7 @@
+import logging
+
+import httpx
+
 from press_release_collector.collectors.html_collector import collect_html
 from press_release_collector.collectors import html_collector
 from press_release_collector.collectors.globenewswire_collector import (
@@ -17,6 +21,21 @@ class _Response:
 
     def raise_for_status(self) -> None:
         return None
+
+
+class _HttpStatusResponse(_Response):
+    def __init__(self, status_code: int, url: str) -> None:
+        super().__init__("", url=url)
+        self.status_code = status_code
+
+    def raise_for_status(self) -> None:
+        request = httpx.Request("GET", self.url)
+        response = httpx.Response(self.status_code, request=request)
+        raise httpx.HTTPStatusError(
+            f"Client error '{self.status_code}' for url '{self.url}'",
+            request=request,
+            response=response,
+        )
 
 
 class _Client:
@@ -87,6 +106,47 @@ def test_html_collector_prefers_internal_press_release_links(monkeypatch) -> Non
     assert releases[1].title == "Investor Deck"
     assert releases[1].url == "https://www.csisoftware.com/investor-deck.pdf"
     assert releases[1].summary is None
+
+
+def test_html_collector_logs_listing_404_without_traceback(monkeypatch, caplog) -> None:
+    listing_url = "https://www.csisoftware.com/category/press-releases/"
+    requests: list[str] = []
+
+    class _NotFoundClient:
+        def __init__(self, **kwargs) -> None:
+            self.headers = kwargs.get("headers") or {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def get(self, url: str, **kwargs) -> _HttpStatusResponse:
+            requests.append(url)
+            return _HttpStatusResponse(404, url)
+
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _NotFoundClient(**kwargs),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="press_release_collector.collectors.html_collector"):
+        releases = collect_html(
+            ticker="CSU.TO",
+            company_name="Constellation Software",
+            url=listing_url,
+        )
+
+    assert releases == []
+    assert requests == [listing_url]
+    assert not [record for record in caplog.records if record.levelno >= logging.ERROR]
+    assert any(
+        "HTML press release listing fetch failed" in record.message
+        and listing_url in record.message
+        and record.exc_info is None
+        for record in caplog.records
+    )
 
 
 def test_nasdaq_collector_uses_press_release_api_and_detail_pages(monkeypatch) -> None:
