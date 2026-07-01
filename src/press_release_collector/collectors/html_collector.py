@@ -72,6 +72,7 @@ SKIP_LINK_TERMS = (
     "news-room",
 )
 _DEFAULT_CONTENT_BLOCK_TERMS: frozenset[str] = frozenset({"address"})
+_STALE_LISTING_STATUSES = {404, 410}
 
 
 def collect_html(
@@ -132,11 +133,19 @@ def collect_html(
                 )
             return releases
     except httpx.HTTPStatusError as exc:
-        logger.warning(
-            "HTML press release listing fetch failed: %s status=%s",
-            url,
-            exc.response.status_code,
-        )
+        status_code = exc.response.status_code
+        if status_code in _STALE_LISTING_STATUSES:
+            logger.warning(
+                "HTML press release listing fetch failed: %s status=%s",
+                url,
+                status_code,
+            )
+        else:
+            logger.exception(
+                "HTML press release listing fetch failed: %s status=%s",
+                url,
+                status_code,
+            )
         return []
     except Exception:
         logger.exception("HTML press release collection failed: %s", url)

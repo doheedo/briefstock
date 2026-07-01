@@ -149,6 +149,47 @@ def test_html_collector_logs_listing_404_without_traceback(monkeypatch, caplog) 
     )
 
 
+def test_html_collector_logs_unexpected_listing_status_as_error(monkeypatch, caplog) -> None:
+    listing_url = "https://www.csisoftware.com/category/press-releases/"
+    requests: list[str] = []
+
+    class _ServerErrorClient:
+        def __init__(self, **kwargs) -> None:
+            self.headers = kwargs.get("headers") or {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def get(self, url: str, **kwargs) -> _HttpStatusResponse:
+            requests.append(url)
+            return _HttpStatusResponse(503, url)
+
+    monkeypatch.setattr(
+        "press_release_collector.collectors.html_collector.httpx.Client",
+        lambda **kwargs: _ServerErrorClient(**kwargs),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="press_release_collector.collectors.html_collector"):
+        releases = collect_html(
+            ticker="CSU.TO",
+            company_name="Constellation Software",
+            url=listing_url,
+        )
+
+    assert releases == []
+    assert requests == [listing_url]
+    assert any(
+        record.levelno >= logging.ERROR
+        and "HTML press release listing fetch failed" in record.message
+        and "status=503" in record.message
+        and record.exc_info is not None
+        for record in caplog.records
+    )
+
+
 def test_nasdaq_collector_uses_press_release_api_and_detail_pages(monkeypatch) -> None:
     api_url = (
         "https://www.nasdaq.com/api/news/topic/press_release"
