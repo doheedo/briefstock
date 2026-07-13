@@ -1,11 +1,15 @@
+from datetime import UTC, datetime
+
 from daily_stock_briefing.adapters.yellowbrick import readability_extract
 
 
 def test_find_recent_read_more_candidate_parses_listing(monkeypatch) -> None:
-    html = """
+    pitch_date = datetime.now(UTC).date()
+    pitch_date_text = f"{pitch_date:%B} {pitch_date.day}, {pitch_date:%Y}"
+    html = f"""
     <html><body>
       <div>
-        <span>April 20, 2026</span>
+        <span>{pitch_date_text}</span>
         <a href="/articles/csu-idea">Read full article</a>
       </div>
     </body></html>
@@ -33,15 +37,16 @@ def test_find_recent_read_more_candidate_parses_listing(monkeypatch) -> None:
 
     assert candidate is not None
     assert candidate.read_more_url == "https://www.joinyellowbrick.com/articles/csu-idea"
-    assert candidate.pitch_date == "2026-04-20"
+    assert candidate.pitch_date == pitch_date.isoformat()
 
 
 def test_find_recent_read_more_candidate_parses_next_payload(monkeypatch) -> None:
+    pitch_date = datetime.now(UTC).date().isoformat()
     html = r'''
     <html><body>
-      <script>self.__next_f.push([1,"1c:[\"$\",\"div\",null,{\"children\":[[\"$\",\"$L1e\",null,{\"initialStockPitches\":[{\"id\":134526,\"url\":\"https://reboundcapital.substack.com/p/rebound-portfolio?utm_source=yellowbrick\",\"updatedAt\":\"2026-04-29T02:44:59.67068+00:00\",\"condensedText\":\"$1f\",\"dateOriginal\":\"2026-04-22\",\"dateRetrieved\":\"2026-04-24\",\"priceTarget\":4000,\"sentiment\":\"bullish\",\"source\":\"BLOG\",\"title\":\"Deep Dive: Constellation Software ($CSU)\",\"wordCount\":2603,\"readTime\":9,\"oneLinerText\":\"CSU.TO deep dive: VMS roll-up with 500+ acquisitions and 100% upside.\"}]}]]}}"])</script>
+      <script>self.__next_f.push([1,"1c:[\"$\",\"div\",null,{\"children\":[[\"$\",\"$L1e\",null,{\"initialStockPitches\":[{\"id\":134526,\"url\":\"https://reboundcapital.substack.com/p/rebound-portfolio?utm_source=yellowbrick\",\"updatedAt\":\"DATE_ORIGINALT02:44:59.67068+00:00\",\"condensedText\":\"$1f\",\"dateOriginal\":\"DATE_ORIGINAL\",\"dateRetrieved\":\"DATE_ORIGINAL\",\"priceTarget\":4000,\"sentiment\":\"bullish\",\"source\":\"BLOG\",\"title\":\"Deep Dive: Constellation Software ($CSU)\",\"wordCount\":2603,\"readTime\":9,\"oneLinerText\":\"CSU.TO deep dive: VMS roll-up with 500+ acquisitions and 100% upside.\"}]}]]}}"])</script>
     </body></html>
-    '''
+    '''.replace("DATE_ORIGINAL", pitch_date)
 
     class _Resp:
         def __init__(self, text: str) -> None:
@@ -68,7 +73,7 @@ def test_find_recent_read_more_candidate_parses_next_payload(monkeypatch) -> Non
         candidate.read_more_url
         == "https://reboundcapital.substack.com/p/rebound-portfolio?utm_source=yellowbrick"
     )
-    assert candidate.pitch_date == "2026-04-22"
+    assert candidate.pitch_date == pitch_date
     assert candidate.title == "Deep Dive: Constellation Software ($CSU)"
     assert candidate.teaser is not None
     assert "VMS roll-up" in candidate.teaser
